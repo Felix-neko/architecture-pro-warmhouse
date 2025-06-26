@@ -1,5 +1,7 @@
 -- Create the database if it doesn't exist
-CREATE DATABASE smarthome;
+SELECT 'CREATE DATABASE smarthome'
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'smarthome')\gexec
+--The \gexec at the end tells psql to execute the generated SQL statement, which is a handy way to conditionally execute commands in PostgreSQL.
 
 -- Connect to the database
 \c smarthome;

@@ -1,0 +1,47 @@
+@startuml
+!include ../../../../C4-PlantUML/C4_Context.puml
+' !include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+LAYOUT_TOP_DOWN()
+'LAYOUT_AS_SKETCH()
+LAYOUT_WITH_LEGEND()
+
+' Писано не по коду в репозитории, а по тексту задания.
+' Основные домены:
+' - Управление умным домом
+' - Регистрация периферии
+' -
+
+
+' Пользователи
+Person(customer, "Клиент", "Пользуется системой отопления")
+Person(admin, "Наладчик", "Настраивает систему")
+
+' Основные системы
+
+System_Boundary(smart_home_domain, "Управление умным домом"){
+    System(smart_home_controller, "Контроллер умного дома")
+}
+
+
+System_Boundary(peripheral_devices, "Периферийные устройства"){
+    System_Ext(temp_sensor, "Датчики температуры")
+    System_Ext(heater_relay, "Реле включения отопления")
+}
+
+System_Ext(proxying_system, "Система проксирования", "Открывает доступ с внешних IP")
+
+
+' Взаимодействия
+
+Rel(customer, smart_home_controller, "Выставляет настройки отопления")
+Rel(customer, smart_home_controller, "Просматривает температуру")
+
+Rel(admin, peripheral_devices, "Физически устанавливает периферию")
+Rel(smart_home_domain, proxying_system, "Отправляет данные вовне")
+
+Rel(smart_home_controller, temp_sensor, "Запрашивает данные от датчика")
+Rel(smart_home_controller, heater_relay, "Включает-выключает нагрев")
+Rel(admin, smart_home_controller, "Регистрация периферии в системе")
+
+@enduml
