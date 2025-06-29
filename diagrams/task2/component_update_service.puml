@@ -1,0 +1,69 @@
+@startuml
+!include ../../../../C4-PlantUML/C4_Component.puml
+
+/'
+Сервис обновления системы:
+- показывает, какие компоненты сейчас развёрнуты. Для каждого компонента приводится:
+  - имя компонента;
+  - тип компоненте
+  - версия компонента;
+  - на каком порту компонент развёрнут;
+  - статус (работает, не работает, ещё запускатется);
+- по имени компонента -- может выдать логи компонента (чтобы пользователь, если что-то пошло не так, смог прислать подробное сообщение об ошибке).
+- показывает список доступных компонентов. Для каждого доступного компонента приводится:
+  - краткое описание компонента;
+  - список поддерживаемых версий;
+  - список компонентов-зависимостей (если есть).
+- получив список компонентов для обновления, выполняет обновление:
+    - сохраняет предыдущую конфигурацию (на случай, если обновление не удалось);
+    - формирует финальный docker-compose, где перечислены все компоненты системы, которые должны быть запущены (и их настройки);
+    - запускает `docker-docker-compose up -d --remove-orphans service‑a service‑b service-c`;
+    - если обновление не удалось, то пытается накатить предыдущую конфигурацию.
+'/
+
+LAYOUT_WITH_LEGEND()
+title Сервис обновления системы: диаграмма компонентов
+
+Container(web_ui, "Веб-интерфейс", "")
+
+Container_Boundary(update_service_boundary, "Сервис обновления системы", "Python + FastAPI") {
+    Container_Boundary(api_layer, "API Layer") {
+        Component(update_api, "Update Management API", "FastAPI Router", "Основной API для управления обновлениями")
+        Component(auth_middleware, "Auth Middleware", "FastAPI Middleware", "")
+    }
+
+    Container_Boundary(service_layer, "Business Logic Layer") {
+        Component(component_service, "Component Service", "Python", "Cбор информации о компонентах в системе")
+        Component(update_service, "Update Service", "Python", "Оркестрация процесса обновления")
+    }
+
+    Rel(update_service, component_service, "Получает информацию о компонентах")
+
+    Container_Boundary(data_layer_boundary, "Data Access / Infrastructure Layer") {
+        Component(deployment_repo, "Deployment Repository", "Python", "Управление развёртыванием")
+        Component(docker_client, "Docker Client", "", "Взаимодействие с Docker API")
+    }
+
+    Rel(component_service, docker_client, получает информацию о запущенных контейнерах)
+    Rel(update_api, component_service, "Запрашивает информацию о компонентах")
+    Rel(update_api, update_service, "Запускает обновление компонентов")
+
+    Rel(update_service, deployment_repo, "Сохраняет конфигурации системы (старую и новую)")
+}
+
+
+Rel(web_ui, update_api, "", "REST/HTTPS")
+
+System_Ext(docker_registry, "Docker Registry", "Хранит образы компонентов\n(на центральном сервере)")
+System_Ext(docker, "Docker Engine", "Запускает и останавливает контейнеры")
+System_Ext(component_list_endpoint, "Component List Endpoint", "Список доступных компонентов с их версиями (на центральном сервере)")
+
+Rel(docker_client, docker, "Управляет контейнерами через", "Docker API")
+Rel(docker, docker_registry, Загрузка образов, HTTPS/REST)
+Rel(update_service, docker_client, "Запускает сгенерированный docker-compose")
+Rel(update_service, component_list_endpoint, "Получает список доступных компонентов")
+
+ContainerDb(config_db, "БД конфигураций", "SQLite/PostgreSQL", "Хранит конфигурации системы и статусы обновлений")
+Rel(deployment_repo, config_db, "Инфомация о конфигурации системы", "SQLAlchemy")
+
+@enduml

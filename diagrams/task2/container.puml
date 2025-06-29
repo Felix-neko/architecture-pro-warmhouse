@@ -9,6 +9,9 @@
 !include DEVICONS/react.puml
 !include FONTAWESOME/users.puml
 !include FONTAWESOME/mobile_alt.puml
+!include DEVICONS/redis.puml
+!include FONTAWESOME/exchange_alt.puml
+!include FONTAWESOME/database.puml
 
 title Система умного дома: диаграмма контейнеров
 
@@ -55,7 +58,7 @@ Rel(frontend_systems, traffic_routing_service, "")
 
 Сервис телеметрии:
 ################################################
-- подписывается на все топики в очереди телеметрии, складывает данные в БД телеметрии (InfluxDB)
+- подписывается на все топики в очереди телеметрии, складывает данные в БД телеметрии (TimescaleDB)
 - умеет отдавать срезы телеметрии из базы по REST API;
 - умеет отдавать обновления телеметрии от заданных датчиков по WebSocket (для динамически обновляемых виджетов веб-приложения).
 
@@ -111,9 +114,8 @@ Rel(frontend_systems, traffic_routing_service, "")
 
         ContainerQueue(mqtt_broker, "Очередь сообщений для датчиков", "MQTT")
         ContainerQueue(telemetry_queue, "Очередь сообщений для телеметрии", "RabbitMQ")
-        ContainerQueue(telemetry_db, "БД телеметрии", "InfluxDB")
+        ContainerQueue(telemetry_db, "БД телеметрии", "InfluxDB", $sprite="database")
     }
-
 
     System_Boundary(smart_home_peripherals, "Периферийные устройства"){
         Container(temp_sensor, "Датчики температуры")
