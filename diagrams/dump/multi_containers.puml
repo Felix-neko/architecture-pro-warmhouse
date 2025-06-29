@@ -1,0 +1,55 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title Простые и практичные способы показать множественные экземпляры
+
+Person(user, "Пользователь")
+
+System_Boundary(web_tier, "Веб-уровень") {
+    ' Способ 1: Multiplicity в названии
+    Container(load_balancer, "Load Balancer", "HAProxy", "Единая точка входа")
+    Container(web_servers, "Web Servers (×3)", "Nginx", "nginx-01, nginx-02, nginx-03")
+
+    ' Способ 2: Диапазон в скобках
+    Container(app_servers, "App Servers [2-8]", "Node.js", "Автомасштабирование от 2 до 8 экземпляров")
+
+    ' Способ 3: Подробное описание в тексте
+    Container(api_cluster, "API Gateway Cluster", "Kong", "3 активных экземпляра:\n• api-gw-01 (primary)\n• api-gw-02 (secondary)\n• api-gw-03 (tertiary)")
+}
+
+System_Boundary(data_tier, "Уровень данных") {
+    ' Способ 4: Явное указание архитектуры
+    ContainerDb(primary_db, "Primary Database", "PostgreSQL", "Основная база данных")
+    ContainerDb(replica_dbs, "Read Replicas (×2)", "PostgreSQL", "Реплики для чтения:\n• db-replica-01\n• db-replica-02")
+
+    ' Способ 5: Кластерное обозначение
+    Container(cache_cluster, "Redis Cluster", "Redis (6 nodes)", "3 master + 3 slave nodes\nАвтофейловер включен")
+}
+
+System_Boundary(monitoring, "Мониторинг") {
+    ' Способ 6: Стек с количеством
+    Container(metrics, "Metrics Stack", "Prometheus (3) + Grafana (2)", "Кластер мониторинга:\n• 3 экземпляра Prometheus\n• 2 экземпляра Grafana\n• 1 экземпляр AlertManager")
+}
+
+' Связи
+Rel(user, load_balancer, "HTTPS requests")
+Rel(load_balancer, web_servers, "Load balances to", "HTTP")
+Rel(web_servers, app_servers, "Forwards to", "HTTP")
+Rel(app_servers, api_cluster, "API calls", "HTTP")
+
+
+Rel(api_cluster, primary_db, "Writes", "SQL/TCP")
+Rel(api_cluster, replica_dbs, "Reads", "SQL/TCP")
+Rel(api_cluster, cache_cluster, "Cache operations", "Redis Protocol")
+
+Rel(metrics, web_servers, "Scrapes metrics")
+Rel(metrics, app_servers, "Scrapes metrics")
+Rel(metrics, api_cluster, "Scrapes metrics")
+
+' Annotations
+note right of web_servers : ×3 = точное количество\nэкземпляров
+note right of app_servers : [2-8] = диапазон для\nавтомасштабирования
+note right of cache_cluster : (6 nodes) = общее количество\nузлов в кластере
+note bottom of metrics : Комбинированное указание\nнескольких сервисов
+
+@enduml

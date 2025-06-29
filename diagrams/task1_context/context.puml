@@ -19,29 +19,22 @@ Person(admin, "Наладчик", "Настраивает систему")
 
 ' Основные системы
 
-System_Boundary(smart_home_domain, "Управление умным домом"){
-    System(smart_home_controller, "Контроллер умного дома")
-}
+System(smart_home_controller, "Контроллер умного дома")
 
+System_Ext(peripheral_devices_2, "Периферийные устройства", "Датчики температуры, реле отопления")
 
-System_Boundary(peripheral_devices, "Периферийные устройства"){
-    System_Ext(temp_sensor, "Датчики температуры")
-    System_Ext(heater_relay, "Реле включения отопления")
-}
 
 System_Ext(proxying_system, "Система проксирования", "Открывает доступ с внешних IP")
 
 
 ' Взаимодействия
 
-Rel(customer, smart_home_controller, "Выставляет настройки отопления")
-Rel(customer, smart_home_controller, "Просматривает температуру")
+Rel(customer, smart_home_controller, "Управление отоплением")
 
-Rel(admin, peripheral_devices, "Физически устанавливает периферию")
-Rel(smart_home_domain, proxying_system, "Отправляет данные вовне")
+Rel(admin, peripheral_devices_2, "Физически устанавливает периферию")
+Rel(admin, smart_home_controller, "Регистрация периферии в системе умного дома")
 
-Rel(smart_home_controller, temp_sensor, "Запрашивает данные от датчика")
-Rel(smart_home_controller, heater_relay, "Включает-выключает нагрев")
-Rel(admin, smart_home_controller, "Регистрация периферии в системе")
+Rel(smart_home_controller, proxying_system, "Отправляет данные вовне")
+
 
 @enduml

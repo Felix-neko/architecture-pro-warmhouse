@@ -1,0 +1,71 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+' Подключаем библиотеки спрайтов
+!define DEVICONS https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/master/devicons
+!define FONTAWESOME https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/master/font-awesome-5
+!include DEVICONS/python.puml
+!include DEVICONS/postgresql.puml
+!include DEVICONS/react.puml
+!include FONTAWESOME/users.puml
+!include FONTAWESOME/mobile_alt.puml
+
+' Определяем пользовательские теги
+AddElementTag("legacy", $bgColor="#orange", $fontColor="white", $borderColor="#red", $legendText="Устаревшие системы")
+AddElementTag("microservice", $shape=EightSidedShape(), $bgColor="#lightblue", $legendText="Микросервис")
+AddElementTag("new_tech", $bgColor="#green", $fontColor="white", $borderColor="#darkgreen", $legendText="Новые технологии")
+AddElementTag("external", $bgColor="#gray", $fontColor="white", $legendText="Внешние системы")
+
+AddRelTag("async", $lineColor="orange", $lineStyle=DashedLine(), $textColor="orange", $legendText="Асинхронное взаимодействие")
+AddRelTag("secure", $lineColor="green", $lineStyle=BoldLine(), $textColor="green", $legendText="Защищенное соединение")
+
+' Изменяем стиль по умолчанию для персон
+UpdateElementStyle("person", $fontColor="blue", $bgColor="lightgreen")
+
+title Система банковского интернет-портала с расширенной кастомизацией
+
+' Пользователи с спрайтами
+Person(customer, "Клиенты банка", "Частные лица", $sprite="users", $link="https://github.com/plantuml-stdlib/C4-PlantUML")
+Person(admin, "Администратор", "IT-сотрудник банка", $sprite="users")
+
+System_Boundary(c1, "Система интернет-банкинга", $link="https://bank.example.com") {
+    Container(web_app, "Веб-приложение", "React, TypeScript", "Интерфейс для веб-браузеров", $sprite="react", $tags="new_tech", $link="https://app.bank.com")
+    Container(mobile_app, "Мобильное приложение", "React Native", "Интерфейс для мобильных устройств", $sprite="mobile_alt", $tags="new_tech")
+
+    Container(api_gateway, "API Gateway", "Kong", "Маршрутизация запросов", $tags="microservice")
+    Container(auth_service, "Сервис аутентификации", "Python, FastAPI", "Управление пользователями", $sprite="python", $tags="microservice")
+    Container(payment_service, "Сервис платежей", "Python, Django", "Обработка транзакций", $sprite="python", $tags="microservice")
+
+    ContainerDb(main_db, "Основная БД", "PostgreSQL", "Пользовательские данные", $sprite="postgresql", $tags="new_tech")
+    ContainerDb(legacy_db, "Устаревшая БД", "Oracle DB", "Старые данные клиентов", $tags="legacy")
+
+    ContainerQueue(message_queue, "Очередь сообщений", "RabbitMQ", "Асинхронная обработка", $tags="new_tech")
+}
+
+' Внешние системы
+System_Ext(core_banking, "Основная банковская система", "Mainframe система учета", $tags="external")
+System_Ext(email_service, "Email сервис", "SendGrid", $tags="external")
+
+' Связи с тегами и описаниями
+Rel(customer, web_app, "Использует", "HTTPS", $tags="secure", $link="https://plantuml.com/link")
+Rel(customer, mobile_app, "Использует", "HTTPS", $tags="secure")
+Rel(admin, web_app, "Администрирует", "HTTPS", $tags="secure")
+
+Rel(web_app, api_gateway, "API вызовы", "REST/HTTPS", $tags="secure")
+Rel(mobile_app, api_gateway, "API вызовы", "REST/HTTPS", $tags="secure")
+
+Rel(api_gateway, auth_service, "Аутентификация", "HTTP", $tags="secure")
+Rel(api_gateway, payment_service, "Платежи", "HTTP", $tags="secure")
+
+Rel(auth_service, main_db, "Читает/записывает", "SQL/TCP")
+Rel(payment_service, main_db, "Читает/записывает", "SQL/TCP")
+Rel(payment_service, legacy_db, "Читает старые данные", "SQL/TCP", $tags="legacy")
+
+Rel(payment_service, message_queue, "Отправляет события", "AMQP", $tags="async")
+Rel(message_queue, email_service, "Отправка уведомлений", "HTTPS", $tags="async")
+Rel(payment_service, core_banking, "Синхронизация", "XML/MQ", $tags="async")
+
+' Показываем легенду
+SHOW_LEGEND()
+
+@enduml
