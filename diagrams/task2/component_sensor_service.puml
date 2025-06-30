@@ -1,0 +1,115 @@
+/'
+Сервис работы с датчиками:
+- умеет работать с одним или несколькими типами датчиков;
+- инкапсулирует внутри себя логику подключения к конкретным типам датчиков;
+
+- вычитывает информацию с датчиков;
+- приводим её к одному из стандартизированных форматов телеметрии (по умолчанию -- тот, который сейчас реализован );
+- кладёт её в очередь телеметрии (для каждого датчика создаём отдельный топик в очереди);
+
+Регистрирует любое изменение статуса датчиков:
+- используем отдельный заранее заданный топик для записи изменения статуса датчиков, например:
+ - взят на сопровождение новый датчик,
+ - датчик был удалён с сопровождения,
+ - датчик включили/выключили,
+ - датчик перестал отвечать,
+ - датчик выдал строку ошибки (например, "Замените батарею"),
+ - [на перспективу] изменился формат записываемых данных, единицы измерения или ещё какие настройки
+   (например, у нас есть промышленный датчик напряжения, и мы перешли на сериализацию данных 1000 раз в секунду
+   в бинарном виде в формате: "64-битная временная метка и 32-битное напряжение в сети в формате FLOAT32",
+   чтобы точно обеспечить хорошую скорость записи данных в БД и протоколировать скачки напряжения).
+
+Для каждого семейства датчиков может работать отдельный сервис, реализующий логику с датчиками конкретных типов.
+Экземпляров сервиса одного типа тоже может быть запущено несколько, если датчиков много (чтобы распараллелить работу).
+
+Выносим в отдельные пакеты:
+- стандартные DAO и DTO для работы с очередью телеметрии (для сохранения настроек и записей);
+- стандартные DAO и DTO для хранения конфигурации в БД конфигурации, чтобы стартовать при перезапуске );
+- стандартные классы и методы для работы с очередью телеметрии;
+- болванки стандартных эндпоинтов.
+
+Стандартные эндпоинты:
+- получить ID датчиков, которые можно взять на сопровождение;
+    - опционально: фильтр "только уже сопровождаемые/только ещё не сопровождаемые";
+    - опционально: фильтр "только влюченные/только выключенные";
+    - опционально: фильтр "только исправные/только неисправные";
+- получить информацию о датчике по ID;
+- получить информацию о датчиках по списку ID;
+- включить/выключить датчик по ID;
+- изменить частоту снятия данных по ID (если это поддерживается датчиком);
+- получить схему настроек датчика по ID (нужно для стандартного виджета отображения на дэшборде, чтобы можно было иметь хоть какой-то стандартный дэшборд):
+ - названия полей;
+ - типы данных
+ - опционально: описания полей;
+ - опционально: диапазон значений;
+ - опционально: допустимые значения.
+- установить значения настроек для датчика (в виде словаря).
+'/
+
+
+@startuml
+'!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+!include ../../../../C4-PlantUML/C4_Component.puml
+
+
+AddElementTag("shared", $bgColor="LightGreen", $borderColor="DarkGreen", $legendText="Разделяемые подсистемы")
+AddElementTag("third-party", $bgColor="#f5f5f5", $borderColor="DarkGray", $legendText="Библиотеки сторонних производителей")
+
+LAYOUT_WITH_LEGEND()
+
+title Сервис работы с датчиками: диаграмма компонентов
+
+Container(web_app, "Веб-интерфейс")
+Container(phone_app, "Мобильное приложение")
+
+Container_Boundary(api_layer, "API Layer") {
+    Component(fastapi_router, "FastAPI-роутер")
+    Component(abstract_sensor_system_router, "AbstractSensorRouter", "abstract, shared", Абстрактный класс-болванка FastAPI с сигнатурами эндпоинтов, $tags=shared)
+    Component(fastapi_auth, "FastAPI Auth Middleware")
+    Rel(fastapi_router, fastapi_auth, "Uses")
+    Rel(fastapi_router, abstract_sensor_system_router, "Implements")
+}
+
+Rel(web_app, fastapi_router, "")
+Rel(phone_app, fastapi_router, "")
+
+Container_Boundary(business_logic_layer, "Business Logic Layer") {
+    Component(sensor_dump_component, "Подсистема сбора данных", "", "датчики --> очереди телеметрии")
+    Component(sensor_settings_component, "Подсистема настроек датчиков")
+}
+
+Rel(fastapi_router, sensor_dump_component, "Добавление/удаление датчиков, управление чтением данных")
+Rel(fastapi_router, sensor_settings_component, "Управление настройками датчиков")
+
+note right of fastapi_router: "Таких сервисов может быть несколько, для различных типов датчиков"
+
+Rel(sensor_dump_component, sensor_settings_component, "")
+
+Container_Boundary(data_access_layer, "Data Access / Data Transfer Layer") {
+    Component(sensor_settings_repo, "Репозиторий настроек датчиков", "shared", \
+        "SqlAlchemy-классы для хранения настроек датчиков в БД", $tags="shared")
+    Component(sensor_samples_repo, "RabbitMQ-репозиторий телеметрии", \
+        "Классы для записи в очередь телеметрии и обновлений состояния датчиков", "shared", $tags="shared")
+    Component(sensor_dto_classes, "DTO-классы", "shared", Pydantic-классы телеметрии и настроек", $tags="shared")
+}
+
+Rel(sensor_dump_component, sensor_samples_repo, "Использует для записи в очередь")
+Rel(sensor_settings_component, sensor_settings_repo, "")
+Rel(sensor_dump_component, sensor_dto_classes, "")
+Rel(sensor_settings_component, sensor_dto_classes, "")
+Rel(sensor_settings_repo, sensor_dto_classes, "")
+Rel(sensor_samples_repo, sensor_dto_classes, "")
+
+' INFRASTRUCTURE LAYER
+Container_Boundary(infrastructure_layer, "Infrastructure Layer") {
+    Component(low_level_sensor_interaction, "Библиотеки взаимодействия с датчиками", "third-party", $tags=third-party)
+    Component(rabbitmq, "RabbitMQ", "third-party", "Входная очередь телеметрии", $tags=third-party)
+    ComponentDb(postgres, "PostgreSQL", "third-party", "БД для хранения настроек датчиков", $tags=third-party)
+}
+
+Rel(sensor_dump_component, low_level_sensor_interaction, "Использует для сбора данных")
+Rel(sensor_settings_component, low_level_sensor_interaction, "Использует для чтения/установки настроек")
+Rel(sensor_settings_repo, postgres, "")
+Rel(sensor_samples_repo, rabbitmq, "")
+
+@enduml

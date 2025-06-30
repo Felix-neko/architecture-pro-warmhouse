@@ -22,7 +22,7 @@ Container_Boundary(telemetry_service, "Сервис телеметрии") {
     Rel(phone_app, fastapi_router, "")
 
     Container_Boundary(sevice_layer, "Business Logic Layer") {
-        Component(telemetry_dump_component, "Компонент дампа телеметрии (очередь-БД)")
+        Component(telemetry_dump_component, "Компонент дампа телеметрии (очередь --> БД)")
         Component(telemetry_db_query_component, "Компонент выборки телеметрии из БД")
         Component(telemetry_queue_reading_component, "Компонент чтения телеметрии из очереди")
     }
