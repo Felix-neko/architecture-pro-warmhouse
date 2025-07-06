@@ -88,8 +88,8 @@ Rel(sensor_dump_component, sensor_settings_component, "")
 Container_Boundary(data_access_layer, "Data Access / Data Transfer Layer") {
     Component(sensor_settings_repo, "Репозиторий настроек датчиков", "shared", \
         "SqlAlchemy-классы для хранения настроек датчиков в БД", $tags="shared")
-    Component(sensor_samples_repo, "RabbitMQ-репозиторий телеметрии", \
-        "Классы для записи в очередь телеметрии и обновлений состояния датчиков", "shared", $tags="shared")
+    Component(sensor_samples_repo, "RabbitMQ-репозиторий телеметрии", shared, \
+        "Классы для записи в очередь телеметрии и обновлений состояния датчиков", $tags="shared")
     Component(sensor_dto_classes, "DTO-классы", "shared", Pydantic-классы телеметрии и настроек", $tags="shared")
 }
 

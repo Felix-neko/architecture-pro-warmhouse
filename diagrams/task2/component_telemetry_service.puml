@@ -2,6 +2,10 @@
 '!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
 !include ../../../../C4-PlantUML/C4_Component.puml
 
+AddElementTag("shared", $bgColor="LightGreen", $borderColor="DarkGreen", $legendText="Разделяемые подсистемы")
+AddElementTag("third-party", $bgColor="#f5f5f5", $borderColor="DarkGray", $fontColor="Black", $legendText="Библиотеки сторонних производителей")
+
+
 LAYOUT_WITH_LEGEND()
 title Сервис телеметрии: диаграмма компонентов
 
@@ -27,19 +31,23 @@ Container_Boundary(telemetry_service, "Сервис телеметрии") {
         Component(telemetry_queue_reading_component, "Компонент чтения телеметрии из очереди")
     }
 
-    Rel(fastapi_router, telemetry_dump_component, "")
-    Rel(fastapi_router, telemetry_queue_reading_component, "Асинхронный вызов, возвращает генератор").
-    Rel(fastapi_router, telemetry_db_query_component, "Синхронный вызов, возвращает Pydantic-объект")
+    Rel(fastapi_router, telemetry_dump_component, "Просмотр состояния очереди", "async")
+    Rel(fastapi_router, telemetry_queue_reading_component, "Для обновляемых виджетов", "async generator").
+
+    Rel(fastapi_router, telemetry_db_query_component, Для виджетов дэшбордов, "async")
 
 
     Container_Boundary(data_access_layer, "Data Access / Data Transfer Layer") {
-        Component(telemetry_dto, "Pydantic-классы телеметрии")
+        Component(telemetry_dto, "DTO-классы", "shared", Pydantic-классы телеметрии, $tags=shared)
         Component(telemetry_sqla_repo, "SQLAlchemy-репозиторий телеметрии")
-        Component(telemetry_queue_repo, "RabbitMQ-репозиторий телеметрии")
+        Component(telemetry_queue_repo, "RabbitMQ-репозиторий телеметрии", shared, $tags=shared)
 
         Rel(telemetry_sqla_repo, telemetry_dto, "Импортирует")
         Rel(telemetry_queue_repo, telemetry_dto, "Импортирует")
     }
+
+    Rel(telemetry_db_query_component, telemetry_dto, "")
+    Rel(telemetry_queue_reading_component, telemetry_dto, "")
 
     Rel(telemetry_dump_component, telemetry_queue_repo, "Использует для чтения из очереди")
     Rel(telemetry_dump_component, telemetry_sqla_repo, "Использует для записи в БД")
@@ -48,10 +56,10 @@ Container_Boundary(telemetry_service, "Сервис телеметрии") {
     Rel(telemetry_db_query_component, telemetry_sqla_repo, "Использует для чтения из БД")
 }
 
-
-ContainerDb(telemetry_input_queue, "Входная очередь телеметрии", "RabbitMQ", "Сервисы работы с датчиками записывают сюда входящую телеметрию")
-ContainerDb(telemetry_db, "БД телеметрии", "TimescaleDB", "Для долговременного хранения телеметрии")
-
+Container_Boundary(infra_layer, "Infrastructure Layer") {
+    ContainerDb(telemetry_input_queue, "Входная очередь телеметрии", "RabbitMQ", "Сервисы работы с датчиками записывают сюда входящую телеметрию", $tags=third-party)
+    ContainerDb(telemetry_db, "БД телеметрии", "TimescaleDB", "Для долговременного хранения телеметрии", $tags=third-party)
+}
 Rel(telemetry_queue_repo, telemetry_input_queue, "Читает данные из очереди", "RabbitMQ")
 Rel(telemetry_sqla_repo, telemetry_db, "Сохраняет данные в БД", "RabbitMQ")
 
