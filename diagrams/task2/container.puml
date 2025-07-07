@@ -13,6 +13,9 @@
 !include FONTAWESOME/exchange_alt.puml
 !include FONTAWESOME/database.puml
 
+AddElementTag("third-party", $bgColor="#f5f5f5", $borderColor="DarkGray", $fontColor="Black", $legendText="Компоненты сторонних производителей")
+
+
 title Система умного дома: диаграмма контейнеров
 
 Person(user, "Пользователь", "Пользователь системы умного дома \n(с возможностью администрирования)")
@@ -29,7 +32,7 @@ Rel(user, phone_app, "")
 System_Boundary(centralized_systems, "Системы на центральном облаке") {
     Container(auth_service, "Сервис аутентификации")
     Container(traffic_routing_service, "Сервис маршрутизации трафика")
-    ContainerDb(update_storage, "Хранилище обновлений", "Docker")
+    ContainerDb(update_storage, "Хранилище обновлений", "Docker", $tags=third-party)
 }
 
 Rel(frontend_systems, auth_service, "")
@@ -103,7 +106,7 @@ Rel(frontend_systems, traffic_routing_service, "")
     System_Boundary(smart_home_controller_services, "Сервисы контроллера умного дома") {
         Container(main_web_service, "Основной веб-сервис", "Python, FastAPI")
         Container(updating_service, "Сервис обновления системы", "Python, FastAPI")
-        ContainerDb(pg_db, "База данных", PostgreSQL, $sprite="postgresql")
+        ContainerDb(pg_db, "База данных", PostgreSQL, $sprite="postgresql", $tags=third-party)
         Container(telemetry_service, "Сервис телеметрии", "Python")
         Container(cctv_service, "Сервис работы с IP-камерами")
         Container(sensor_service_1, Cервис работы с датчиками #1)
@@ -112,20 +115,20 @@ Rel(frontend_systems, traffic_routing_service, "")
         Container(actuator_service_1, Сервис исполнительных устройств #1)
         Container(actuator_service_2, Сервис исполнительных устройств #2)
 
-        ContainerQueue(mqtt_broker, "Очередь сообщений для датчиков", "MQTT")
-        ContainerQueue(telemetry_queue, "Очередь сообщений для телеметрии", "RabbitMQ")
-        ContainerQueue(telemetry_db, "БД телеметрии", "InfluxDB", $sprite="database")
+        ContainerQueue(mqtt_broker, "Очередь сообщений для датчиков", "MQTT", $tags=third-party)
+        ContainerQueue(telemetry_queue, "Очередь сообщений для телеметрии", "RabbitMQ", $tags=third-party)
+        ContainerDb(telemetry_db, "БД телеметрии", "TimescaleDB", $sprite="database", $tags=third-party)
     }
 
     System_Boundary(smart_home_peripherals, "Периферийные устройства"){
-        Container(temp_sensor, "Датчики температуры")
-        Container(heater_relay, "Реле включения отопления")
-        Container(cctv_camera, "IP-камеры")
-        Container(air_conditioner, "Кондиционер")
-        Container(co2_sensor, "Датчик CO2")
-        Container(smoke_sensor, "Датчик дыма")
-        Container(leakage_sensor, Датчик протечки)
-        Container(door, Автоматические ворота)
+        Container(temp_sensor, "Датчики температуры", $tags=third-party)
+        Container(heater_relay, "Реле включения отопления", $tags=third-party)
+        Container(cctv_camera, "IP-камеры", $tags=third-party)
+        Container(air_conditioner, "Кондиционер", $tags=third-party)
+        Container(co2_sensor, "Датчик CO2", $tags=third-party)
+        Container(smoke_sensor, "Датчик дыма", $tags=third-party)
+        Container(leakage_sensor, Датчик протечки, $tags=third-party)
+        Container(door, Автоматические ворота, $tags=third-party)
     }
 
     Rel(main_web_service, actuator_service_1, "Команда открытия ворот по кнопке в виджете")

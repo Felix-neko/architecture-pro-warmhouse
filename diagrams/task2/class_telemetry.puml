@@ -1,0 +1,106 @@
+@startuml
+
+!define POST_COLOR #FFE6E6
+!define GET_COLOR #E6F3FF
+!define WS_COLOR #E6FFE6
+
+
+class TelemetryRouter {
+    + <GET> <async> query_telemetry_sources(sensor_ids = None, sensor_names = None): List[TelemetrySourceInfo]
+    + <GET> <async> query_telemetry(source_id, start_time, end_time, format): List[TelemetrySampleInfo]
+    + <WS> <async> subscribe_to_telemetry(source_id, start_time, format): WebSocket[TelemetrySampleInfo]
+    + <GET> <async> heath_check(): dict <<HealthCheckInfo>>
+}
+
+abstract pydantic.BaseModel
+
+class TelemetrySourceInfo {
+    +sensor_info: SensorInfo
+    +format: TelemetryFormat
+}
+
+TelemetrySourceInfo --> pydantic.BaseModel: implements
+TelemetryRouter --> TelemetrySourceInfo : imports
+
+class SensorInfo {
+    +sensor_id: str
+    +is_active: bool
+    +samples_per_second: float
+}
+
+SensorInfo --> pydantic.BaseModel: implements
+TelemetrySourceInfo --> SensorInfo: uses
+
+abstract class TelemetrySampleInfo {
+    + timestamp: datetime
+}
+
+TelemetrySampleInfo --> pydantic.BaseModel: implements
+
+
+class FloatTelemetrySampleInfo{
+    + value: Optional[float]
+}
+FloatTelemetrySampleInfo --> TelemetrySampleInfo: inherits
+
+class BoolTelemetrySampleInfo {
+    + value: Optional[bool]
+}
+
+BoolTelemetrySampleInfo --> TelemetrySampleInfo: inherits
+
+
+class JsonTelemetrySampleInfo <<Extra.allow>> {
+
+}
+JsonTelemetrySampleInfo  --> TelemetrySampleInfo: inherits
+TelemetryRouter --> TelemetrySampleInfo: uses
+
+
+class TelemetryQueueDumper {
+    +__init__(db_conn_str, db_schema, telemetry_queue_url)
+}
+
+TelemetryRouter --> TelemetryQueueDumper: uses
+
+note as telemetry_queue_dumper_floating_note
+    Слушает очередь телеметрии
+    - служебный топик об обновлении состояния датчиков;
+    - топики датчиков.
+    Сохраняет телеметрию в БД.
+    Используем RabbitMQ Streams, offset'ы храним на брокере.
+end note
+telemetry_queue_dumper_floating_note .. TelemetryQueueDumper
+
+
+class TelemetryQueueReader {
++__init__(telemetry_queue_url)
++ <async> yield_telemetry (source_id, start_time, format): Generator[TelemetrySampleInfo]
+}
+TelemetryRouter "1" --> "many" TelemetryQueueReader: uses
+note as telemetry_queue_reader_floating_note
+    Роутер инстанцирует очередного слушателя,
+    когда получает запрос на открытие вебсокета
+    на обновление телеметрии.
+
+    Слушатель подписывается на заданный топик,
+    возвращает по нему асинхронный генератор.
+    Когда вебсокет закрывается, роутер убивает слушателя
+end note
+TelemetryQueueReader .. telemetry_queue_reader_floating_note
+TelemetryQueueReader --> TelemetrySampleInfo: uses
+
+
+class TelemetryDbReader {
++ __init__(db_conn_str, db_schema)
++ <async> query_telemetry(source_id, start_time, end_time, format): List[TelemetrySampleInfo]
+}
+TelemetryRouter -- TelemetryDbReader: uses
+TelemetryDbReader --> TelemetrySampleInfo: uses
+
+note as telemetry_db_reader_floating_note
+    Выполяет асинхронное чтение из БД,
+    возвращает выборки телеметрии.
+end note
+TelemetryDbReader .. telemetry_db_reader_floating_note
+@enduml

@@ -12,6 +12,10 @@ title Сервис телеметрии: диаграмма компоненто
 ' А как показать, что это внешние компоненты по отношению к компоненту телеметрии?
 Container(web_app, "Веб-интерфейс")
 Container(phone_app, "Мобильное приложение")
+Container(telemetry_consumer_microservices, "Другие микросервисы умного дома")
+
+note left of telemetry_consumer_microservices: Микросервисы, реализующие различную логику управления умным домом \
+в зависимости от считанной телеметрии (например, перекрыть клапан при срабатывании датчика протечки)"
 
 
 Container_Boundary(telemetry_service, "Сервис телеметрии") {
@@ -24,6 +28,7 @@ Container_Boundary(telemetry_service, "Сервис телеметрии") {
 
     Rel(web_app, fastapi_router, "")
     Rel(phone_app, fastapi_router, "")
+    Rel(telemetry_consumer_microservices, fastapi_router, "")
 
     Container_Boundary(sevice_layer, "Business Logic Layer") {
         Component(telemetry_dump_component, "Компонент дампа телеметрии (очередь --> БД)")
