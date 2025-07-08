@@ -116,7 +116,7 @@ Rel(frontend_systems, traffic_routing_service, "")
         Container(actuator_service_2, Сервис исполнительных устройств #2)
 
         ContainerQueue(mqtt_broker, "Очередь сообщений для датчиков", "MQTT", $tags=third-party)
-        ContainerQueue(telemetry_queue, "Очередь сообщений для телеметрии", "RabbitMQ", $tags=third-party)
+        ContainerQueue(telemetry_queue, "Очередь сообщений для телеметрии", "Kafka", $tags=third-party)
         ContainerDb(telemetry_db, "БД телеметрии", "TimescaleDB", $sprite="database", $tags=third-party)
     }
 

@@ -63,7 +63,7 @@ Container(web_app, "Веб-интерфейс")
 Container(phone_app, "Мобильное приложение")
 
 Container_Boundary(api_layer, "API Layer") {
-    Component(fastapi_router, "FastAPI-роутер")
+    Component(fastapi_router, "Sensor System FastAPI Router")
     Component(abstract_sensor_system_router, "AbstractSensorRouter", "abstract, shared", Абстрактный класс-болванка FastAPI с сигнатурами эндпоинтов, $tags=shared)
     Component(fastapi_auth, "FastAPI Auth Middleware")
     Rel(fastapi_router, fastapi_auth, "Uses")
@@ -88,7 +88,7 @@ Rel(sensor_dump_component, sensor_settings_component, "")
 Container_Boundary(data_access_layer, "Data Access / Data Transfer Layer") {
     Component(sensor_settings_repo, "Репозиторий настроек датчиков", "shared", \
         "SqlAlchemy-классы для хранения настроек датчиков в БД", $tags="shared")
-    Component(sensor_samples_repo, "RabbitMQ-репозиторий телеметрии", shared, \
+    Component(sensor_samples_repo, "Kafka-репозиторий телеметрии", shared, \
         "Классы для записи в очередь телеметрии и обновлений состояния датчиков", $tags="shared")
     Component(sensor_dto_classes, "DTO-классы", "shared", Pydantic-классы телеметрии и настроек", $tags="shared")
 }
@@ -103,7 +103,7 @@ Rel(sensor_samples_repo, sensor_dto_classes, "")
 ' INFRASTRUCTURE LAYER
 Container_Boundary(infrastructure_layer, "Infrastructure Layer") {
     Component(low_level_sensor_interaction, "Библиотеки взаимодействия с датчиками", "third-party", $tags=third-party)
-    Component(rabbitmq, "RabbitMQ", "third-party", "Входная очередь телеметрии", $tags=third-party)
+    Component(rabbitmq, "kafka", "third-party", "Входная очередь телеметрии", $tags=third-party)
     ComponentDb(postgres, "PostgreSQL", "third-party", "БД для хранения настроек датчиков", $tags=third-party)
 }
 

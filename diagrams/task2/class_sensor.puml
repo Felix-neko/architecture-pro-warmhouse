@@ -1,0 +1,189 @@
+@startuml
+
+abstract class AbstractSensorRouter {
+    + {abstract} <<GET>> <<async>> get_sensors(
+        \tavailable_only: Optional[bool] = True,
+        \tactive_only: Optional[bool] = True
+    ) -> List[SensorInfo]
+    --
+    + {abstract} <<GET>> <<async>> get_sensor_info(sensor_id) -> SensorInfo
+    + {abstract} <<GET>> <<async>> get_sensor_settings(sensor_id) -> SensorSettingsInfo
+    + {abstract} <<PUT>> <<async>> set_sensor_settings_schema(sensor_id) -> Dict[str, SensorSettingsFieldInfo]
+    + {abstract} <<PUT>> <<async>> set_sensor_settings_element(sensor_id, key, value)
+}
+
+class AcmeSensorRouter {
+
+}
+
+AcmeSensorRouter --> AbstractSensorRouter : implements
+
+note as acme_sensor_router_note
+    FastAPI-роутер
+    для работы с датчиками фирмы ACME
+    (нескольких моделей).
+
+    Некоторые датчики умеют сами
+    отправлять измерения в MQTT-очередь.
+
+    Некотрые надо опрашивать раз в какое-то время.
+end note
+
+AcmeSensorRouter .. acme_sensor_router_note
+
+package pydantic <<third-party>> {
+    abstract class BaseModel
+}
+
+package sensor_dto <<shared>> {
+    class SensorSettingsFieldInfo {
+        +name: str
+        +data_type: SensorSettingsFieldDataType = DataType.JSON
+        +description: Optional[str] = None
+        +min_value: Optional[Union[float, int]] = None
+        +max_value: Optional[Union[float, int]] = None
+        +allowed_values: Optional[List[Any]] = None
+    }
+
+    SensorSettingsFieldInfo --> pydantic.BaseModel: implements
+    AbstractSensorRouter --> SensorSettingsFieldInfo: uses
+    AbstractSensorRouter --> SensorSettingsInfo: uses
+
+    class SensorInfo {
+        +id: str
+        +name: str
+        +type: SensorType
+        +url: Optional[str]
+        +needs_polling: Optional[bool]
+        +frequency: Optional[float]
+        +health_check_frequency: Optional[float]
+        +is_active: bool
+        +is_alive: bool
+        +err_msg: Optional[str]
+    }
+
+    AbstractSensorRouter --> SensorInfo: uses
+
+    SensorInfo --> pydantic.BaseModel: implements
+
+    class SensorSettingsInfo {
+    }
+
+    SensorSettingsInfo --> pydantic.BaseModel: implements
+}
+
+package telemetry_queue_repo <<shared>> {
+    class SensorQueueProcessor <<shared>> {
+        +__init__(self, telemetry_queue_url: str)
+        +<<async>> push_telemetry_sample(sample: TelemetrySampleInfo)
+        +<<async>> push_sensor_status_changes(status_changes)
+        + <<async>> get_queue_status() -> QueueStatus
+    }
+}
+
+package aiokafka <<third-party>>{
+    class Producer
+}
+
+SensorQueueProcessor --> aiokafka: uses
+
+note as sensor_queue_processor_note
+    Этот класс отвечает за запись данных
+    с датчиков в стандартную очередь телеметрии.
+
+    Здесь реализована основная логика работы с kafka
+    и основные методы для записи данных в очередь
+    (для измерений с датчиков и для записи изменения состояний).
+
+    Как опрашивать конкретные датчики --
+    -- реализуется в классах-наследниках.
+end note
+SensorQueueProcessor .. sensor_queue_processor_note
+
+
+class AcmeSensorSampleProcessor {
+    +add_sensor(
+        \tsensor_id,
+        \tformat: Optional,
+        \tsampling_frequency: Optional[float] = None,
+        \thealth_check_frequency: Optional[float] = None,
+        \t**kwargs
+    )
+    +__init__(self, telemetry_queue_url: str)
+    +remove_sensor(sensor_id)
+    +get_format(sensor_id, format) -> SensorSampleFormat
+    +set_format(sensor_id, format)
+    +get_sampling_frequency(sensor_id, frequency) -> Optional[float]
+    +set_sampling_frequency(sensor_id, frequency)
+    +get_health_check_frequency(sensor_id) -> Optional[float]
+    +set_health_check_frequency(sensor_id, frequency)
+    ---
+    + <property> sensor_ids -> List[str]
+}
+
+AcmeSensorSampleProcessor --> SensorQueueProcessor: implements
+
+note as acme_sensor_sample_processor_note
+    Этот класс отвечает за снятие данных
+    с IP-датчиков фирмы ACME (разных типов).
+
+    Поддерживает как опрос датчиков по REST API,
+    так и подписку на MQTT-очередь.
+
+    Прочитанные данные складываем в очередь телеметрии.
+
+    По необходимости -- также складываем
+    сообщения об ошибке (в отдельный топик):
+    - если опросить датчик не удалось;
+    - если датчик не прислал обновления в MQTT
+        в течение заданного времени;
+    - если не удалось сконвертировать данные;
+end note
+AcmeSensorSampleProcessor .. acme_sensor_sample_processor_note
+
+package gmqtt <<third-party>> {
+class gmqtt.Client
+}
+
+AcmeSensorSampleProcessor --> gmqtt: uses
+
+
+class AcmeSensorSettingsManager {
+    + <property> sensor_ids: List[str]
+
+    + get_sensor_settings_schema(sensor_id) -> Dict[str, SensorSettingsFieldInfo]
+    + get_sensor_settings(sensor_id) -> SensorSettingsInfo
+    + set_sensor_settings(sensor_id, settings)
+    + get_sensor_settings_element(sensor_id, key) -> Any
+    + set_sensor_settings_element(sensor_id, key, value)
+}
+
+note as acme_sensor_settings_manager_note
+    Этот класс читает и выставляет
+    настройки датчиков (по запросу).
+
+    Об изменениях в настройках пишем
+    в очередь телеметрии в служебный топик.
+end note
+AcmeSensorSettingsManager .. acme_sensor_settings_manager_note
+
+AcmeSensorSettingsManager --> SensorQueueProcessor
+
+AcmeSensorSampleProcessor --> AcmeSensorSettingsManager: uses
+AcmeSensorSettingsManager --> SensorSettingsFieldInfo
+AcmeSensorSettingsManager --> SensorSettingsInfo
+
+
+AcmeSensorRouter --> AcmeSensorSampleProcessor: uses
+AcmeSensorRouter --> AcmeSensorSettingsManager: uses
+
+package telemetry_dto <<shared>> {
+    abstract class TelemetrySampleInfo {
+        + timestamp: datetime
+    }
+}
+AcmeSensorSampleProcessor --> telemetry_dto: uses
+SensorQueueProcessor --> TelemetrySampleInfo: uses
+
+
+@enduml

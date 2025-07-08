@@ -45,7 +45,7 @@ Container_Boundary(telemetry_service, "Сервис телеметрии") {
     Container_Boundary(data_access_layer, "Data Access / Data Transfer Layer") {
         Component(telemetry_dto, "DTO-классы", "shared", Pydantic-классы телеметрии, $tags=shared)
         Component(telemetry_sqla_repo, "SQLAlchemy-репозиторий телеметрии")
-        Component(telemetry_queue_repo, "RabbitMQ-репозиторий телеметрии", shared, $tags=shared)
+        Component(telemetry_queue_repo, "Kafka-репозиторий телеметрии", shared, $tags=shared)
 
         Rel(telemetry_sqla_repo, telemetry_dto, "Импортирует")
         Rel(telemetry_queue_repo, telemetry_dto, "Импортирует")
@@ -62,10 +62,10 @@ Container_Boundary(telemetry_service, "Сервис телеметрии") {
 }
 
 Container_Boundary(infra_layer, "Infrastructure Layer") {
-    ContainerDb(telemetry_input_queue, "Входная очередь телеметрии", "RabbitMQ", "Сервисы работы с датчиками записывают сюда входящую телеметрию", $tags=third-party)
+    ContainerDb(telemetry_input_queue, "Входная очередь телеметрии", "Kafka", "Сервисы работы с датчиками записывают сюда входящую телеметрию", $tags=third-party)
     ContainerDb(telemetry_db, "БД телеметрии", "TimescaleDB", "Для долговременного хранения телеметрии", $tags=third-party)
 }
-Rel(telemetry_queue_repo, telemetry_input_queue, "Читает данные из очереди", "RabbitMQ")
-Rel(telemetry_sqla_repo, telemetry_db, "Сохраняет данные в БД", "RabbitMQ")
+Rel(telemetry_queue_repo, telemetry_input_queue, "Читает данные из очереди", "Kafka")
+Rel(telemetry_sqla_repo, telemetry_db, "Сохраняет данные в БД", "Kafka")
 
 @enduml

@@ -39,7 +39,7 @@ System_Boundary(c1, "Система интернет-банкинга", $link="h
     ContainerDb(main_db, "Основная БД", "PostgreSQL", "Пользовательские данные", $sprite="postgresql", $tags="new_tech")
     ContainerDb(legacy_db, "Устаревшая БД", "Oracle DB", "Старые данные клиентов", $tags="legacy")
 
-    ContainerQueue(message_queue, "Очередь сообщений", "RabbitMQ", "Асинхронная обработка", $tags="new_tech")
+    ContainerQueue(message_queue, "Очередь сообщений", "Kafka", "Асинхронная обработка", $tags="new_tech")
 }
 
 ' Внешние системы

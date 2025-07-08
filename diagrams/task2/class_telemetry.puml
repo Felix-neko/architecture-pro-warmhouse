@@ -6,10 +6,10 @@
 
 
 class TelemetryRouter {
-    + <GET> <async> query_telemetry_sources(sensor_ids = None, sensor_names = None): List[TelemetrySourceInfo]
-    + <GET> <async> query_telemetry(source_id, start_time, end_time, format): List[TelemetrySampleInfo]
-    + <WS> <async> subscribe_to_telemetry(source_id, start_time, format): WebSocket[TelemetrySampleInfo]
-    + <GET> <async> heath_check(): dict <<HealthCheckInfo>>
+    + <<GET>> <<async>> query_telemetry_sources(sensor_ids = None, sensor_names = None) -> List[TelemetrySourceInfo]
+    + <<GET>> <<async>> query_telemetry(source_id, start_time, end_time, format) -> List[TelemetrySampleInfo]
+    + <<WS>> <<async>> subscribe_to_telemetry(source_id, start_time, format) -> WebSocket[TelemetrySampleInfo]
+    + <<GET>> <<async>> heath_check() -> Dict[str, bool]
 }
 
 abstract pydantic.BaseModel
@@ -31,29 +31,32 @@ class SensorInfo {
 SensorInfo --> pydantic.BaseModel: implements
 TelemetrySourceInfo --> SensorInfo: uses
 
-abstract class TelemetrySampleInfo {
-    + timestamp: datetime
+package telemetry_dto <<shared>> {
+    abstract class TelemetrySampleInfo {
+        + timestamp: datetime
+    }
+
+    TelemetrySampleInfo --> pydantic.BaseModel: implements
+
+
+    class FloatTelemetrySampleInfo{
+        + value: Optional[float]
+    }
+    FloatTelemetrySampleInfo --> TelemetrySampleInfo: inherits
+
+    class BoolTelemetrySampleInfo {
+        + value: Optional[bool]
+    }
+
+    BoolTelemetrySampleInfo --> TelemetrySampleInfo: inherits
+
+
+    class JsonTelemetrySampleInfo <<Extra.allow>> {
+
+    }
+    JsonTelemetrySampleInfo  --> TelemetrySampleInfo: inherits
 }
 
-TelemetrySampleInfo --> pydantic.BaseModel: implements
-
-
-class FloatTelemetrySampleInfo{
-    + value: Optional[float]
-}
-FloatTelemetrySampleInfo --> TelemetrySampleInfo: inherits
-
-class BoolTelemetrySampleInfo {
-    + value: Optional[bool]
-}
-
-BoolTelemetrySampleInfo --> TelemetrySampleInfo: inherits
-
-
-class JsonTelemetrySampleInfo <<Extra.allow>> {
-
-}
-JsonTelemetrySampleInfo  --> TelemetrySampleInfo: inherits
 TelemetryRouter --> TelemetrySampleInfo: uses
 
 
@@ -68,14 +71,14 @@ note as telemetry_queue_dumper_floating_note
     - служебный топик об обновлении состояния датчиков;
     - топики датчиков.
     Сохраняет телеметрию в БД.
-    Используем RabbitMQ Streams, offset'ы храним на брокере.
+    Используем Kafka, offset'ы храним на брокере.
 end note
 telemetry_queue_dumper_floating_note .. TelemetryQueueDumper
 
 
 class TelemetryQueueReader {
 +__init__(telemetry_queue_url)
-+ <async> yield_telemetry (source_id, start_time, format): Generator[TelemetrySampleInfo]
++ <async> yield_telemetry (source_id, start_time, format) -> Generator[TelemetrySampleInfo]
 }
 TelemetryRouter "1" --> "many" TelemetryQueueReader: uses
 note as telemetry_queue_reader_floating_note
@@ -93,7 +96,7 @@ TelemetryQueueReader --> TelemetrySampleInfo: uses
 
 class TelemetryDbReader {
 + __init__(db_conn_str, db_schema)
-+ <async> query_telemetry(source_id, start_time, end_time, format): List[TelemetrySampleInfo]
++ <async> query_telemetry(source_id, start_time, end_time, format) -> List[TelemetrySampleInfo]
 }
 TelemetryRouter -- TelemetryDbReader: uses
 TelemetryDbReader --> TelemetrySampleInfo: uses
