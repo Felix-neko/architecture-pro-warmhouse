@@ -12,11 +12,16 @@ services:
       POSTGRES_DB: smarthome
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./smart_home/init.sql:/docker-entrypoint-initdb.d/init.sql  # executed only at firtst run
-  ## тут нужно добавить настройки
+      - ./smart_home/init.sql:/docker-entrypoint-initdb.d/init.sql  # выполняется только при первом запуске
 
-#   temperature-api:
-  ## тут нужно добавить приложение
+  temperature-api:
+    container_name: temperature-api
+    build:
+      context: ./smart_home/temperature_api
+      dockerfile: Dockerfile
+    ports:
+    - "8081:8081"
+    restart: unless-stopped
 
   app:
     build:
@@ -26,20 +31,14 @@ services:
     depends_on:
       postgres:
         condition: service_started
-#       temperature-api:
-#         condition: service_started
+      temperature-api:
+        condition: service_started
     environment:
       - DATABASE_URL=postgres://postgres:postgres@postgres:5432/smarthome
       - TEMPERATURE_API_URL=http://temperature-api:8081
     ports:
       - "8080:8080"
     restart: unless-stopped
-#     networks:
-#       - smarthome-network
 
 volumes:
   postgres_data:
-
-# networks:
-#   smarthome-network:
-#     driver: bridge
