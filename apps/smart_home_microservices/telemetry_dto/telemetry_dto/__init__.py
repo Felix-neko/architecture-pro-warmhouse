@@ -169,7 +169,6 @@ sensor_event_classes = {
 
 
 if __name__ == "__main__":
-    import json
     from datetime import datetime, timezone
     from uuid import uuid4
 

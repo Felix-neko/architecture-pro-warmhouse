@@ -276,12 +276,6 @@ class TelemetryPublisher(TelemetryQueueProcessor):
         raise NotImplementedError("Implement it in child classes!")
 
 
-# async def create_and_init_tqs() -> TelemetryQueueSubscriber:
-#     tqs = TelemetryQueueSubscriber()
-#     await tqs.initialize()
-#     return tqs
-
-
 async def listen_status_events():
     tqs = TelemetrySubscriber()
     await tqs.initialize()
@@ -310,8 +304,6 @@ async def push_some_events():
 
     await publisher.push_status_event(measurement_start_event)
 
-    # await asyncio.sleep(15)
-
     # Create and push some float telemetry samples.
 
     # Create some sample temperature readings
@@ -324,8 +316,6 @@ async def push_some_events():
     logging.info(f"Pushing {len(samples)} float samples to {publisher.topic_name}")
     await publisher.push_samples(samples)
     logging.info(f"Pushed {len(samples)} float samples to {publisher.topic_name}")
-
-    # await asyncio.sleep(15)
 
     # end measurement
     measurement_stop_event = MeasurementStoppedStatusEvent(

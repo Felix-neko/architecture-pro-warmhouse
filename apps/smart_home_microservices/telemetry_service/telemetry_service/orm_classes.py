@@ -1,26 +1,16 @@
-import asyncio
 from datetime import datetime, timezone
 from typing import List, Any, Optional
 
 from sqlalchemy import (
-    Column,
     Integer,
     DateTime,
     Float,
-    String,
-    DDL,
-    event,
 )
 from sqlalchemy.dialects.postgresql import JSONB as JSON
 
-from sqlalchemy.ext.asyncio import (
-    AsyncEngine,
-    AsyncSession,
-    create_async_engine,
-)
+
 from sqlalchemy.orm import (
     declarative_base,
-    sessionmaker,
     Mapped,
     mapped_column,
 )
