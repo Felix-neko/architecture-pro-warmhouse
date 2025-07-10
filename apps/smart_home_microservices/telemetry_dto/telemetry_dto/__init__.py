@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field, ConfigDict, TypeAdapter
 from typing_extensions import Literal
 
 
-TELEMETRY_STATUS_EVENTS_TOPIC = "_telemetry_status_events"
+TELEMETRY_STATUS_EVENTS_TOPIC = "telemetry_status_events"
 
 
 ########################################################################
@@ -37,6 +37,7 @@ class TelemetrySampleFormat(str, Enum):
 class TelemetrySample(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     timestamp: datetime = Field(default_factory=lambda: datetime.now().astimezone())
+    value: Optional[Any] = None
 
 
 class FloatTelemetrySample(TelemetrySample):
