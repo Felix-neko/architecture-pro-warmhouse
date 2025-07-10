@@ -6,9 +6,6 @@ import logging
 import struct
 from uuid import uuid4
 
-
-import aiokafka
-
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
@@ -31,7 +28,7 @@ from telemetry_dto import (
 )
 
 
-def deserialize_sample(record: aiokafka.ConsumerRecord, sample_format: TelemetrySampleFormat) -> TelemetrySample:
+def deserialize_sample(record: ConsumerRecord, sample_format: TelemetrySampleFormat) -> TelemetrySample:
     if sample_format == TelemetrySampleFormat.FLOAT:
         timestamp_seconds = record.timestamp / 1000.0
         ts_from_record = datetime.fromtimestamp(timestamp_seconds, tz=timezone.utc)
@@ -152,6 +149,7 @@ class TelemetrySubscriber(TelemetryQueueProcessor):
             bootstrap_servers=self._kafka_url,
             group_id=self._SAMPLES_CONSUMER_GRPOUP_ID,
             enable_auto_commit=True,
+            auto_offset_reset="earliest",  # Чтобы не ловить race condition!
         )
         await self._status_event_consumer.start()
         await self._sample_consumer.start()
@@ -312,6 +310,8 @@ async def push_some_events():
 
     await publisher.push_status_event(measurement_start_event)
 
+    # await asyncio.sleep(15)
+
     # Create and push some float telemetry samples.
 
     # Create some sample temperature readings
@@ -324,6 +324,8 @@ async def push_some_events():
     logging.info(f"Pushing {len(samples)} float samples to {publisher.topic_name}")
     await publisher.push_samples(samples)
     logging.info(f"Pushed {len(samples)} float samples to {publisher.topic_name}")
+
+    # await asyncio.sleep(15)
 
     # end measurement
     measurement_stop_event = MeasurementStoppedStatusEvent(
