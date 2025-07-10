@@ -3,10 +3,16 @@ pydantic-классы и enum'ы для передачи телеметриче�
 """
 
 from datetime import datetime
-from typing import Optional, Any
+from typing import Optional, Any, Annotated, Union
+from typing_extensions import Literal
 from enum import Enum
+from uuid import UUID
 
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, TypeAdapter
+from typing_extensions import Literal
+
+
+TELEMETRY_STATUS_EVENTS_TOPIC = "_telemetry_status_events"
 
 
 ########################################################################
@@ -14,7 +20,12 @@ from pydantic import BaseModel, Field, ConfigDict
 ########################################################################
 
 
-class TelemetrySampleType(str, Enum):
+class TelemetrySampleFormat(str, Enum):
+    """
+    В каком формате заливать телеметрию в очередь.
+    NB: FLOAT_WITH_TIMESTAMP и FLOAT потом будует конвертироваться в один и тот же класс FloatTelemetrySample)
+    """
+
     CUSTOM = "CUSTOM"  # Данные произвольного JSON-формата
     FLOAT_WITH_TIMESTAMP = "FLOAT_WITH_TIMESTAMP"  # timestamp + бинарная float-чиселка
     FLOAT = "FLOAT"  # Только бинарные float-данные, timestamp проставляется средствами KAFKA
@@ -56,9 +67,19 @@ class CustomTelemetrySample(TelemetrySample):
 class StatusEvent(BaseModel):
     timestamp: datetime
 
+    def __init_subclass__(cls, **kwargs):
+        """
+        Нужно, чтобы работал TypeAdapter с дискриминатором
+        """
+        super().__init_subclass__(**kwargs)
+        # Automatically add the literal discriminator field
+        cls.__annotations__["event_class_name"] = Literal[cls.__name__]
+        # Set the default value
+        setattr(cls, "event_class_name", cls.__name__)
+
 
 class SensorStatusEvent(StatusEvent):
-    sensor_id: int = Field(description="Уникальное ID датчика, уникально в рамках нашего умного дома")
+    sensor_uuid: UUID = Field(description="UUID датчика, уникально в рамках нашего умного дома")
     sensor_name: Optional[str] = Field(default=None, description="Мнемоническое имя для отображения датчика")
 
 
@@ -92,10 +113,8 @@ class MeasurementStartedStatusEvent(SensorStatusEvent):
     """
 
     kafka_topic_name: str = Field(description="Kafka-топик, на который надо подписаться, чтобы читать данные")
-    sample_format: TelemetrySampleType = Field(description="")
-    frequency: Optional[float] = Field(
-        description="Частота сбора данных, с которой сервис работы с датчиком датчик будет закидывать данные в очередь"
-    )
+    sampling_format: TelemetrySampleFormat = Field(description="")
+    sampling_interval: Optional[float] = Field(description="Интервал сбора данных (секунды)")
 
 
 class MeasurementStoppedStatusEvent(SensorStatusEvent):
@@ -103,8 +122,27 @@ class MeasurementStoppedStatusEvent(SensorStatusEvent):
     Датчик закончил измерение, удалите kafka-топик, когда закончите его сгружать в БД
     """
 
-    sensor_id: int
+    sensor_uuid: UUID
     kafka_topic_name: str = Field(description="Kafka-топик, от которого надо будет отписаться, когда прочитаем данные")
+
+
+# Discriminated union with only concrete subclasses
+StatusEventUnion = Annotated[
+    Union[
+        SensorCreatedStatusEvent,
+        SensorDeletedStatusEvent,
+        SensorInfoStatusEvent,
+        SensorWarningStatusEvent,
+        SensorErrorStatusEvent,
+        SensorOtherStatusEvent,
+        MeasurementStartedStatusEvent,
+        MeasurementStoppedStatusEvent,
+    ],
+    Field(discriminator="event_class_name"),
+]
+
+# Create TypeAdapter for the discriminated union
+StatusEventTypeAdapter = TypeAdapter(StatusEventUnion)
 
 
 class SensorStatusEventType(str, Enum):
@@ -127,3 +165,42 @@ sensor_event_classes = {
     SensorStatusEventType.MEASUREMENT_STARTED: MeasurementStartedStatusEvent,
     SensorStatusEventType.MEASUREMENT_STOPPED: MeasurementStoppedStatusEvent,
 }
+
+
+if __name__ == "__main__":
+    import json
+    from datetime import datetime, timezone
+    from uuid import uuid4
+
+    # Create a UUID for the sensor
+    sensor_uuid = uuid4()
+
+    # Create instances of each event type
+    events = [
+        MeasurementStartedStatusEvent(
+            timestamp=datetime.now(timezone.utc).astimezone(),
+            sensor_uuid=sensor_uuid,
+            sensor_name="Living Room Temperature",
+            kafka_topic_name="temp_measurements_topic",
+            sampling_format=TelemetrySampleFormat.FLOAT,
+            sampling_interval=0.1,
+        ),
+        MeasurementStoppedStatusEvent(
+            timestamp=datetime.now(timezone.utc).astimezone(),
+            sensor_uuid=sensor_uuid,
+            sensor_name="Living Room Temperature",
+            kafka_topic_name="temp_measurements_topic",
+        ),
+    ]
+
+    for event in events:
+        # Serialize to JSON bytes
+        json_bytes = event.model_dump_json().encode("utf-8")
+        # Deserialize back to object
+        deserialized_event = StatusEventTypeAdapter.validate_json(json_bytes)
+        print(f"\nEvent Type: {type(event)}")
+        print(f"Original: {event}")
+        print(f"Serialized: {json_bytes}")
+        print(f"Deserialized: {deserialized_event}")
+        print(f"Deserialized type: {type(deserialized_event)}")
+        print(f"Correct type preserved: {type(event) == type(deserialized_event)}")
