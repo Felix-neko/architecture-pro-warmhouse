@@ -1,6 +1,6 @@
 @startuml
 
-abstract class AbstractSensorRouter {
+abstract class BaseSensorRouter {
     + {abstract} <<GET>> <<async>> get_sensors(
         \tavailable_only: Optional[bool] = True,
         \tactive_only: Optional[bool] = True
@@ -16,7 +16,7 @@ class AcmeSensorRouter {
 
 }
 
-AcmeSensorRouter --> AbstractSensorRouter : implements
+AcmeSensorRouter --> BaseSensorRouter : implements
 
 note as acme_sensor_router_note
     FastAPI-роутер
@@ -46,8 +46,8 @@ package sensor_dto <<shared>> {
     }
 
     SensorSettingsFieldInfo --> pydantic.BaseModel: implements
-    AbstractSensorRouter --> SensorSettingsFieldInfo: uses
-    AbstractSensorRouter --> SensorSettingsInfo: uses
+    BaseSensorRouter --> SensorSettingsFieldInfo: uses
+    BaseSensorRouter --> SensorSettingsInfo: uses
 
     class SensorInfo {
         +id: str
@@ -62,7 +62,7 @@ package sensor_dto <<shared>> {
         +err_msg: Optional[str]
     }
 
-    AbstractSensorRouter --> SensorInfo: uses
+    BaseSensorRouter --> SensorInfo: uses
 
     SensorInfo --> pydantic.BaseModel: implements
 
