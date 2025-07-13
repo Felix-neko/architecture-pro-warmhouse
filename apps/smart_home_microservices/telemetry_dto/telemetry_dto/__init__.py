@@ -28,7 +28,7 @@ class TelemetrySampleFormat(str, Enum):
 
     CUSTOM = "CUSTOM"  # Данные произвольного JSON-формата
     FLOAT_WITH_TIMESTAMP = "FLOAT_WITH_TIMESTAMP"  # timestamp + бинарная float-чиселка
-    FLOAT = "FLOAT"  # Только бинарные float-данные, timestamp проставляется средствами KAFKA
+    FLOAT_BINARY = "FLOAT_BINARY"  # Только бинарные float-данные, timestamp проставляется средствами KAFKA
     INT = "INT"  # Только бинарные int-данные, timestamp проставляется средствами kafka
     BOOL = "BOOL"  # Только бинарные bool-данные, timestamp проставляется средствами kafka
     TEXT = "TEXT"  # Только текстовые данные в UTF-8
@@ -182,7 +182,7 @@ if __name__ == "__main__":
             sensor_uuid=sensor_uuid,
             sensor_name="Living Room Temperature",
             kafka_topic_name="temp_measurements_topic",
-            sampling_format=TelemetrySampleFormat.FLOAT,
+            sampling_format=TelemetrySampleFormat.FLOAT_BINARY,
             sampling_interval=0.1,
         ),
         MeasurementStoppedStatusEvent(

@@ -2,7 +2,7 @@
 Интерфейсы FastAPI-роутера для сервиса устройств (для простых устройств и для датчиков).
 """
 
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Union
 import inspect
 
 import uvicorn
@@ -16,6 +16,8 @@ from generic_device_services.device_dto import (
     MeasurementProcessInfo,
     TelemetrySampleFormat,
 )
+
+from telemetry_dto import TelemetrySample
 
 
 class NotImplementedHttpError(HTTPException):
@@ -41,8 +43,13 @@ class BaseDeviceRouter(APIRouter):
         method_name = inspect.currentframe().f_back.f_code.co_name
         raise NotImplementedHttpError(f"method {method_name}() should be implemented in child classes!")
 
-    def __init__(self, tags: Optional[List[str]] = None):
+    def __init__(self, tags: Optional[List[str]] = None, telemetry_queue_url: Optional[str] = None):
         super().__init__(tags=tags)
+        self._telemetry_queue_url = telemetry_queue_url
+
+        @self.get("/health_check")
+        async def health_check() -> Optional[bool]:
+            return await self.health_check()
 
         @self.get("/all_devices")
         async def get_devices(available_only: bool = True, active_only: bool = False) -> List[DeviceInfo]:
@@ -51,6 +58,10 @@ class BaseDeviceRouter(APIRouter):
         @self.post("/device/add")
         async def add_device(payload: Optional[Any] = Body()) -> DeviceInfo:
             return await self.add_device(payload)
+
+        @self.get("/device/{device_id}/info")
+        async def get_device_info(device_id: int) -> DeviceInfo:
+            return await self.get_device(device_id)
 
         @self.put("/device/{device_id}/active/{is_active}")
         async def add_device(device_id: int, is_active: bool):
@@ -64,10 +75,6 @@ class BaseDeviceRouter(APIRouter):
         @self.delete("/device/{device_id}/delete")
         async def delete_device(device_id: int):
             return await self.delete_device(device_id)
-
-        @self.get("/device/{device_id}/info")
-        async def get_device_info(device_id: int) -> DeviceInfo:
-            return await self.get_device_info(device_id)
 
         @self.get("/device/{device_id}/settings")
         async def get_device_settings(device_id: int) -> DeviceSettingsInfo:
@@ -95,11 +102,14 @@ class BaseDeviceRouter(APIRouter):
     # Абстрактные методы для роутера: переопределяем их в классах-реализациях
     ####################################################################################
 
+    async def health_check(self) -> Optional[bool]:
+        self._raise_not_implemented()
+
     async def get_devices(self, available_only: bool = True, active_only: bool = False) -> List[DeviceInfo]:
         """List all registered devices."""
         self._raise_not_implemented()
 
-    async def get_device_info(self, device_id: int) -> DeviceInfo:
+    async def get_device(self, device_id: int) -> DeviceInfo:
         self._raise_not_implemented()
 
     async def get_device_settings(self, device_id: int) -> DeviceSettingsInfo:
@@ -140,6 +150,20 @@ class BaseSensorRouter(BaseDeviceRouter):
         # Чтобы поддерживалось внутреннее состояние (и объект роутера не пересоздавался при каждом запуске),
         # HTTP-маршруты будем надевать на методы прямо в __init__
 
+        @self.get("/all_devices")
+        async def get_devices(
+            available_only: bool = True, active_only: bool = False
+        ) -> List[Union[SensorInfo, DeviceInfo]]:
+            return await self.get_devices(available_only=available_only, active_only=active_only)
+
+        @self.post("/device/add")
+        async def add_device(payload: Optional[Any] = Body()) -> Union[SensorInfo, DeviceInfo]:
+            return await self.add_device(payload)
+
+        @self.get("/device/{device_id}/info")
+        async def get_device(device_id: int) -> Union[SensorInfo, DeviceInfo]:
+            return await self.get_device(device_id)
+
         @self.get("/device/{device_id}/measurement_processes")
         async def get_measurement_processes(
             device_id: Optional[int] = None, active_only: bool = False
@@ -149,6 +173,10 @@ class BaseSensorRouter(BaseDeviceRouter):
         @self.get("/measurement_process/{meas_proc_id}")
         async def get_measurement_process(meas_proc_id: int) -> MeasurementProcessInfo:
             return await self.get_measurement_process(meas_proc_id)
+
+        @self.get(path="/device/{device_id}/measure")
+        async def measure_once(device_id: int, sample_format: TelemetrySampleFormat) -> TelemetrySample:
+            return await self.measure_once(device_id, sample_format)
 
         @self.post("/device/{device_id}/create_measurement_process", operation_id="create_management_process")
         async def create_measurement_process(
@@ -162,7 +190,16 @@ class BaseSensorRouter(BaseDeviceRouter):
         async def stop_measurement_process(meas_proc_id: int):
             return await self.stop_measurement_process(meas_proc_id)
 
-    async def get_device_info(self, device_id: int) -> SensorInfo:
+    async def get_devices(
+        self, available_only: bool = True, active_only: bool = False
+    ) -> List[Union[SensorInfo, DeviceInfo]]:
+        """List all registered devices."""
+        self._raise_not_implemented()
+
+    async def get_device(self, device_id: int) -> Union[SensorInfo, DeviceInfo]:
+        self._raise_not_implemented()
+
+    async def add_device(self, payload: Any) -> Union[SensorInfo, DeviceInfo]:
         self._raise_not_implemented()
 
     async def get_device_measurement_processes(
@@ -179,6 +216,9 @@ class BaseSensorRouter(BaseDeviceRouter):
         self._raise_not_implemented()
 
     async def stop_measurement_process(self, meas_proc_id: int) -> None:
+        self._raise_not_implemented()
+
+    async def measure_once(self, device_id: int, sample_format: TelemetrySampleFormat) -> TelemetrySample:
         self._raise_not_implemented()
 
 

@@ -5,6 +5,7 @@ import uvicorn
 from old_system_sensor_service.router import OldSystemTempSensorRouter
 from old_system_sensor_service.settings import settings
 
+
 # Script entrypoint to run with Uvicorn
 if __name__ == "__main__":
 

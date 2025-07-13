@@ -26,7 +26,7 @@ class DeviceInfo(BaseModel):
         description="ID устройства в рамках своего сервиса (разные сервисы устройств будут смотреть на разные схемы БД)"
     )
     device_uuid: UUID = Field(
-        default_factory=uuid4,
+        # default_factory=uuid4,
         description="Идентификатор устройства, глобально уникальный для каждого конкретного устройства, "
         "даже разных производителей и сервисов",
     )

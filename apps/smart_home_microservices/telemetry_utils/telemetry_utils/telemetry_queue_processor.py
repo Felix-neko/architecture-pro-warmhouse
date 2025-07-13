@@ -29,7 +29,7 @@ from telemetry_dto import (
 
 
 def deserialize_sample(record: ConsumerRecord, sample_format: TelemetrySampleFormat) -> TelemetrySample:
-    if sample_format == TelemetrySampleFormat.FLOAT:
+    if sample_format == TelemetrySampleFormat.FLOAT_BINARY:
         timestamp_seconds = record.timestamp / 1000.0
         ts_from_record = datetime.fromtimestamp(timestamp_seconds, tz=timezone.utc)
         blob = record.value
@@ -47,7 +47,7 @@ def deserialize_sample(record: ConsumerRecord, sample_format: TelemetrySampleFor
 
 
 def serialize_sample(sample: TelemetrySample, sample_format: TelemetrySampleFormat) -> bytes:
-    if sample_format == TelemetrySampleFormat.FLOAT:
+    if sample_format == TelemetrySampleFormat.FLOAT_BINARY:
         if sample.value is None:
             # flag=False, no float data follows
             return struct.pack(">?", False)
@@ -287,7 +287,7 @@ async def push_some_events():
     sensor_uuid = uuid4()
     sensor_name = "float_temp_sensor_1"
 
-    publisher = TelemetryPublisher(sensor_name, str(sensor_uuid), TelemetrySampleFormat.FLOAT)
+    publisher = TelemetryPublisher(sensor_name, str(sensor_uuid), TelemetrySampleFormat.FLOAT_BINARY)
     await publisher.initialize()
 
     await publisher._create_topic(publisher.topic_name)

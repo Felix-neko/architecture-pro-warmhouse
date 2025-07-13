@@ -12,10 +12,12 @@ authors = [
 readme = "README.md"
 requires-python = ">=3.8"
 dependencies = [
+    #    "generic_sensor_service",
     "fastapi>=0.68.0",
     "uvicorn>=0.15.0",
     "pydantic>=2.0.0",
-    "generic_sensor_service",
+    "aiohttp>=3.10.11",
+    "pydantic-settings>=2.8.1",
 ]
 
 [project.optional-dependencies]
