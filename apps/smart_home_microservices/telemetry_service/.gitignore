@@ -37,3 +37,5 @@ ENV/
 # Local development
 .DS_Store
 Thumbs.db
+/.env
+/.venv/

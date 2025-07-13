@@ -11,7 +11,9 @@ services:
     ports:
       - "2181:2181"
     networks:
-      - kafka-network
+      shared-network:
+        aliases:
+          - zookeeper
 
   kafka:
     image: confluentinc/cp-kafka:7.0.1
@@ -30,7 +32,9 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
     networks:
-      - kafka-network
+      shared-network:
+        aliases:
+          - kafka
 
   # TimescaleDB
   timescaledb:
@@ -42,10 +46,10 @@ services:
       POSTGRES_DB: telemetry
     ports:
       - "5433:5432"
-    volumes:
-      - timescaledb_data:/var/lib/postgresql/data
     networks:
-      - kafka-network
+      shared-network:
+        aliases:
+          - timescaledb
 
   # Kafka UI (Optional)
   kafka-ui:
@@ -59,11 +63,26 @@ services:
     depends_on:
       - kafka
     networks:
-      - kafka-network
+      shared-network:
+        aliases:
+          - kafka-ui
+
+  # Old System Sensor Service Wrapper
+  old-system-sensor-service:
+    build:
+      context: . # Неправильно, но это чтобы не писать зависимости в pypi-репу = )
+      dockerfile: Dockerfile
+    container_name: old-system-sensor-service
+    ports:
+      - "8000:8000"
+    environment:
+      - OLD_SERVICE_URL=http://smarthome-app:8080
+    networks:
+      shared-network:
+        aliases:
+          - old-system-sensor-service
 
 networks:
-  kafka-network:
-    driver: bridge
-
-volumes:
-  timescaledb_data:
+  shared-network:
+    external: true
+    name: smarthome-network

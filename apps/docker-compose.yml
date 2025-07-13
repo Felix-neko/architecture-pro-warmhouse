@@ -12,7 +12,9 @@ services:
       POSTGRES_DB: smarthome
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./smart_home/init.sql:/docker-entrypoint-initdb.d/init.sql  # выполняется только при первом запуске
+      - ./smart_home/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - shared-network
 
   temperature-api:
     container_name: temperature-api
@@ -20,8 +22,10 @@ services:
       context: ./smart_home/temperature_api
       dockerfile: Dockerfile
     ports:
-    - "8081:8081"
+      - "8081:8081"
     restart: unless-stopped
+    networks:
+      - shared-network
 
   app:
     build:
@@ -39,6 +43,13 @@ services:
     ports:
       - "8080:8080"
     restart: unless-stopped
+    networks:
+      - shared-network
+
+networks:
+  shared-network:
+    name: smarthome-network
+    driver: bridge
 
 volumes:
   postgres_data:

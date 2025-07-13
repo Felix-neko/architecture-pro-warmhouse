@@ -11,8 +11,8 @@ if __name__ == "__main__":
 
     app = FastAPI(title="Old System Temperature Sensor Adapter")
     # Choose the appropriate router
-    sensor_router = OldSystemTempSensorRouter()
+    sensor_router = OldSystemTempSensorRouter(old_service_url=settings.old_service_url)
     app.include_router(sensor_router)
 
     # Launch server on port 8000
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host=settings.host, port=settings.port)
