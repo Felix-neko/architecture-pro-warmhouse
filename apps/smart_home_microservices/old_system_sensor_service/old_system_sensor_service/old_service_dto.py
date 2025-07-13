@@ -41,6 +41,6 @@ class OldServiceTempSensorCreateInfo(BaseModel):
     """
 
     name: str = Field(description="Name of the sensor")
-    type: str = Field(description="Type of the sensor", default="TEMPERATURE")
     location: str = Field(description="Physical location where the sensor is installed")
+    type: str = Field(default="TEMPERATURE", description="Type of the sensor")
     unit: str = Field(default="°C", description="Unit of measurement (e.g., '°C' for Celsius)")

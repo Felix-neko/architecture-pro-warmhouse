@@ -1,3 +1,7 @@
+"""
+FastAPI-роутер для управления датчиками (роутер-адаптер для старого монолита)
+"""
+
 import json
 from typing import Optional, List, Dict, Any
 from uuid import UUID, uuid4
@@ -6,13 +10,14 @@ from collections import defaultdict
 import aiohttp
 from fastapi import HTTPException, status as status_codes
 from pydantic import parse_obj_as
+from pydantic.fields import PydanticUndefined
 
 from generic_device_services.router import BaseSensorRouter, SensorInfo, DeviceInfo
 from generic_device_services.router import NotImplementedHttpError
-from generic_device_services.device_dto import DeviceType, SensorType
+from generic_device_services.device_dto import DeviceType, SensorType, DeviceParamInfo, DeviceParamDataType
 
 from old_system_sensor_service.settings import settings
-from old_system_sensor_service.dto import OldServiceTempSensorInfo, OldServiceTempSensorCreateInfo
+from old_system_sensor_service.old_service_dto import OldServiceTempSensorInfo, OldServiceTempSensorCreateInfo
 
 
 class OldServiceNotWorking(HTTPException):
@@ -146,7 +151,7 @@ class OldSystemTempSensorRouter(BaseSensorRouter):
         except json.JSONDecodeError as ex:
             raise OldServiceNotWorking(f"Old service returned invalid JSON response {ex}")
 
-    async def add_device(self, params: Dict[str, Any]) -> SensorInfo:
+    async def create_device(self, params: Dict[str, Any]) -> SensorInfo:
         """
         Create a new temperature sensor in the old service.
 
@@ -228,3 +233,41 @@ class OldSystemTempSensorRouter(BaseSensorRouter):
             raise OldServiceNotWorking(f"Failed to connect to old service: {str(e)}")
         except Exception as e:
             raise OldServiceNotWorking(f"Unexpected error: {str(e)}")
+
+    async def get_device_creation_params(self) -> Dict[str, DeviceParamInfo]:
+        """
+        Get the parameters required to create a new temperature sensor in the old service.
+        Automatically extracts field information from OldServiceTempSensorCreateInfo.
+
+        Returns:
+            Dictionary mapping parameter names to their metadata.
+        """
+        param_info = {}
+
+        for field_name, field in OldServiceTempSensorCreateInfo.model_fields.items():
+            # Get field type and handle it appropriately
+            field_type = field.annotation
+            data_type = DeviceParamDataType.TEXT  # Default to TEXT
+
+            if field_type in (int, float):
+                data_type = DeviceParamDataType.INT if field_type is int else DeviceParamDataType.FLOAT
+
+            # Check if field has choices (enum)
+            allowed_values = None
+            if hasattr(field_type, "__args__") and field_type.__args__:
+                allowed_values = list(field_type.__args__)
+
+            # Get default value if exists
+            default_value = field.default if field.default is not PydanticUndefined else None
+
+            param_info[field_name] = DeviceParamInfo(
+                name=field_name,
+                display_name=field_name.replace("_", " ").title(),
+                description=field.description or f"{field_name} parameter",
+                required=field.default is PydanticUndefined and field.default_factory is None,
+                data_type=data_type,
+                default_value=default_value,
+                allowed_values=allowed_values,
+            )
+
+        return param_info

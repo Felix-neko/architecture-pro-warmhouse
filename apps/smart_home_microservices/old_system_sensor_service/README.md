@@ -11,7 +11,8 @@ http://0.0.0.0:8000/docs
 
 Сейчас реализованы эндпоинты:
 
-- POST /device/add
+- POST /device/create
+- GET /device/create/params
 - GET /all_devices
 - GET /device/{device_id}/info
 - DELETE /device/{device_id}/delete

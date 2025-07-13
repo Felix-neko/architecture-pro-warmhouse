@@ -22,6 +22,8 @@ class DeviceType(str, Enum):
 class DeviceInfo(BaseModel):
     """Информация об устройстве"""
 
+    model_config = ConfigDict(extra="allow")
+
     device_id: int = Field(
         description="ID устройства в рамках своего сервиса (разные сервисы устройств будут смотреть на разные схемы БД)"
     )
@@ -118,7 +120,7 @@ class DeviceSettingsInfo(BaseModel):
     )
 
 
-class DeviceSettingsDataType(str, Enum):
+class DeviceParamDataType(str, Enum):
     """Типы данных для отдельных настроек устройства"""
 
     INT = "INT"
@@ -128,19 +130,23 @@ class DeviceSettingsDataType(str, Enum):
     JSON = "JSON"
 
 
-class DeviceSettingsFieldInfo(BaseModel):
+class DeviceParamInfo(BaseModel):
     """
-    Метаданные: поля настроек.
+    Метаданные: спецификация полей настроек устройства
 
-    Содержит информацию, необходимую для генерации виджета настройки для настройки параметров устройства.
+    Содержит метаданные для генерации:
+    - дефолтного виджета настроек устройства;
+    - дефолтной формы добавления нового устройства (там набор может быть отличаться от набора настроек, это важно!)
     """
 
-    name: str = Field(description="Идентификатор поля в настройках")
+    name: str = Field(description="Идентификатор поля в настройках (например, 'cutoff_voltage')")
     display_name: Optional[str] = Field(
-        default=None, description="Человекочитаемое название поля для отображения в интерфейсе"
+        default=None,
+        description='Человекочитаемое название поля для отображения в интерфейсе, например, "Напряжение отсечки"',
     )
-    description: Optional[str] = Field(default=None, description="Подробное описание назначения и использования поля")
-    data_type: DeviceSettingsDataType = Field(default=DeviceSettingsDataType.JSON, description="Тип данных поля")
+    required: bool = Field(description="Флажок, что поле обязательное")
+    description: Optional[str] = Field(default=None, description="Подробное описание поля")
+    data_type: DeviceParamDataType = Field(default=DeviceParamDataType.JSON, description="Тип данных поля")
     min_value: Optional[float] = Field(default=None, description="Минимальное допустимое значение (для числовых типов)")
     max_value: Optional[float] = Field(
         default=None, description="Максимальное допустимое значение (для числовых типов)"
@@ -148,3 +154,5 @@ class DeviceSettingsFieldInfo(BaseModel):
     allowed_values: Optional[List[Any]] = Field(
         default=None, description="Список допустимых значений (если поле может принимать только определённые значения)"
     )
+
+    default_value: Optional[Any] = Field(default=None, description="Значение по умолчанию (если поле не required)")

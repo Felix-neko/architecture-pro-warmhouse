@@ -12,7 +12,7 @@ from generic_device_services.device_dto import (
     DeviceInfo,
     SensorInfo,
     DeviceSettingsInfo,
-    DeviceSettingsFieldInfo,
+    DeviceParamInfo,
     MeasurementProcessInfo,
     TelemetrySampleFormat,
 )
@@ -59,40 +59,69 @@ class BaseDeviceRouter(APIRouter):
     def _initialize_routes(self):
         @self.get("/health_check")
         async def health_check() -> Optional[bool]:
+            """Проверка состояния сервиса"""
             return await self.health_check()
 
         @self.get("/all_devices")
         async def get_devices(available_only: bool = True, active_only: bool = False) -> List[DeviceInfo]:
+            """
+            Вернуть список всех устройств, сопровождаемых этим роутером
+            """
             return await self.get_devices(available_only=available_only, active_only=active_only)
 
-        @self.post("/device/add")
-        async def add_device(params: Dict[str, Any] = Body()) -> DeviceInfo:
-            return await self.add_device(params)
+        @self.get("/device/create/params")
+        async def get_device_creation_params() -> Dict[str, DeviceParamInfo]:
+            """
+            Вернуть словарь параметров для создания устройства (имена параметров, типы данных, обязательность и т.д.)
+            """
+            return await self.get_device_creation_params()
+
+        @self.post("/device/create")
+        async def create_device(params: Dict[str, Any] = Body()) -> DeviceInfo:
+            """
+            Создать устройство
+            """
+            return await self.create_device(params)
 
         @self.get("/device/{device_id}/info")
         async def get_device(device_id: int) -> DeviceInfo:
+            """
+            Вернуть информацию об устройстве
+            """
             return await self.get_device(device_id)
 
         @self.put("/device/{device_id}/active/{is_active}")
         async def set_device_active(device_id: int, is_active: bool):
+            """
+            Активировать/деактивировать устройство
+            """
             await self.set_device_active(device_id, is_active)
 
         @self.put("/device/{device_id}/health_check_interval/{interval}")
         async def set_device_health_check_interval(device_id: int, interval: Optional[float] = None):
-            # get_health_check_interval отдельно не делаем, его и в get_device_info можно посмотреть
+            """
+            Установить интервал автопроверки состояния устройства.
+            get_health_check_interval отдельно не делаем, его и в get_device_info можно посмотреть
+            """
             await self.set_device_health_check_interval(device_id, interval)
 
         @self.delete("/device/{device_id}/delete")
         async def delete_device(device_id: int):
+            """"""
             return await self.delete_device(device_id)
 
         @self.get("/device/{device_id}/settings")
         async def get_device_settings(device_id: int) -> DeviceSettingsInfo:
+            """
+            Вернуть настройки устройства
+            """
             return await self.get_device_settings(device_id)
 
         @self.put("/device/{device_id}/settings/update")
         async def update_device_settings(device_id, new_settings: DeviceSettingsInfo = Body(embed=False)):
-            # Допускается неполное обновление (только части полей)
+            """
+            Обновить настройки устройства.  Допускается неполное обновление (только части полей)
+            """
             await self.update_device_settings(device_id, new_settings)
 
         @self.put("/device/{device_id}/settings/update_field")
@@ -100,7 +129,10 @@ class BaseDeviceRouter(APIRouter):
             await self.update_device_settings_field(device_id, fld_name, fld_value)
 
         @self.get("/device/{device_id}/settings_schema")
-        async def get_device_settings_schema(device_id: int) -> Dict[str, DeviceSettingsFieldInfo]:
+        async def get_device_settings_schema(device_id: int) -> Dict[str, DeviceParamInfo]:
+            """
+            Вернуть схему настроек устройства (имена параметров, типы данных, обязательность и т.д.)
+            """
             return await self.get_device_settings_schema(device_id)
 
     ####################################################################################
@@ -120,7 +152,10 @@ class BaseDeviceRouter(APIRouter):
     async def get_device_settings(self, device_id: int) -> DeviceSettingsInfo:
         self._raise_not_implemented()
 
-    async def add_device(self, params: Dict[str, Any]) -> DeviceInfo:
+    async def create_device(self, params: Dict[str, Any]) -> DeviceInfo:
+        self._raise_not_implemented()
+
+    async def get_device_creation_params(self) -> Dict[str, DeviceParamInfo]:
         self._raise_not_implemented()
 
     async def delete_device(self, device_id: int):
@@ -138,15 +173,15 @@ class BaseDeviceRouter(APIRouter):
     async def update_device_settings_field(self, device_id: int, fld_name: str, fld_value: Any) -> None:
         self._raise_not_implemented()
 
-    async def get_device_settings_schema(self, device_id: int) -> Dict[str, DeviceSettingsFieldInfo]:
+    async def get_device_settings_schema(self, device_id: int) -> Dict[str, DeviceParamInfo]:
         self._raise_not_implemented()
 
 
 class BaseSensorRouter(BaseDeviceRouter):
     """
-    Болваночка роутера для сервиса датчиков: добавлены методы управления измерениями.
+    Абстрактный роутер для сервиса датчиков: добавлены методы управления измерениями.
 
-    Нужно собраться с духом, помолиться и реализовать эти абстрактные методы в классах-наследниках...
+    Нужно собраться с духом, помолиться и реализовать эти методы в классах-наследниках, хотя бы немножко : 3
     """
 
     def __init__(self, tags: Optional[List[str]] = None, telemetry_queue_url: Optional[str] = None):
@@ -161,30 +196,30 @@ class BaseSensorRouter(BaseDeviceRouter):
         async def get_devices(
             available_only: bool = True, active_only: bool = False
         ) -> List[Union[SensorInfo, DeviceInfo]]:
+            """
+            Вернуть список с информацией о всех устройств, доступных для этого сервиса
+            """
             return await self.get_devices(available_only=available_only, active_only=active_only)
 
-        @self.post("/device/add")
-        async def add_device(params: Dict[str, Any] = Body()) -> Union[SensorInfo, DeviceInfo]:
-            return await self.add_device(params)
+        @self.post("/device/create")
+        async def create_device(params: Dict[str, Any] = Body()) -> Union[SensorInfo, DeviceInfo]:
+            """
+            Создать устройство
+            """
+            return await self.create_device(params)
 
         @self.get("/device/{device_id}/info")
         async def get_device(device_id: int) -> Union[SensorInfo, DeviceInfo]:
+            """Вернуть информацию об отдельном устройстве"""
             return await self.get_device(device_id)
 
         # И добавим ещё немножко методов
 
-        @self.get("/device/{device_id}/measurement_processes")
-        async def get_measurement_processes(
-            device_id: Optional[int] = None, active_only: bool = False
-        ) -> List[MeasurementProcessInfo]:
-            return await self.get_device_measurement_processes(device_id, active_only=active_only)
-
-        @self.get("/measurement_process/{meas_proc_id}")
-        async def get_measurement_process(meas_proc_id: int) -> MeasurementProcessInfo:
-            return await self.get_measurement_process(meas_proc_id)
-
         @self.get(path="/device/{device_id}/measure")
         async def measure_once(device_id: int, sample_format: TelemetrySampleFormat) -> TelemetrySample:
+            """
+            Провести однократное измерение на датчике
+            """
             return await self.measure_once(device_id, sample_format)
 
         @self.post("/device/{device_id}/create_measurement_process", operation_id="create_management_process")
@@ -193,11 +228,27 @@ class BaseSensorRouter(BaseDeviceRouter):
             sample_format: Optional[TelemetrySampleFormat] = Body(default=None),
             sampling_interval: Optional[float] = Body(default=None),
         ) -> MeasurementProcessInfo:
+            """
+            Начать процесс регулярных измерений на датчике
+            """
             return await self.create_measurement_process(device_id, sample_format, sampling_interval)
 
         @self.put("/measurement_process/{meas_proc_id}/stop")
         async def stop_measurement_process(meas_proc_id: int):
+            """Остановить запущенныйпроцесс регулярных измерений"""
             return await self.stop_measurement_process(meas_proc_id)
+
+        @self.get("/device/{device_id}/measurement_processes")
+        async def get_measurement_processes(
+            device_id: Optional[int] = None, active_only: bool = False
+        ) -> List[MeasurementProcessInfo]:
+            """Вернуть все процессы измерений на датчике (с возможностью фильтрации 'только активные')"""
+            return await self.get_device_measurement_processes(device_id, active_only=active_only)
+
+        @self.get("/measurement_process/{meas_proc_id}")
+        async def get_measurement_process(meas_proc_id: int) -> MeasurementProcessInfo:
+            """Вернуть информацию об отдельном процессе измерений по его ID"""
+            return await self.get_measurement_process(meas_proc_id)
 
     async def get_devices(
         self, available_only: bool = True, active_only: bool = False
@@ -208,7 +259,7 @@ class BaseSensorRouter(BaseDeviceRouter):
     async def get_device(self, device_id: int) -> SensorInfo:
         self._raise_not_implemented()
 
-    async def add_device(self, params: Dict[str, Any]) -> Union[SensorInfo, DeviceInfo]:
+    async def create_device(self, params: Dict[str, Any]) -> Union[SensorInfo, DeviceInfo]:
         self._raise_not_implemented()
 
     async def get_device_measurement_processes(
