@@ -19,7 +19,9 @@
 '/
 
 @startuml
-!include ../../../../C4-PlantUML/C4_Component.puml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+'!include ../../../../C4-PlantUML/C4_Component.puml
+
 
 AddElementTag("shared", $bgColor="LightGreen", $borderColor="DarkGreen", $legendText="Разделяемые подсистемы")
 AddElementTag("third-party", $bgColor="#f5f5f5", $borderColor="DarkGray", $fontColor="Black", $legendText="Библиотеки сторонних производителей")

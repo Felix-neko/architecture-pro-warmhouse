@@ -1,10 +1,10 @@
 import json
-from typing import Optional, List, Dict, Union, Any
+from typing import Optional, List, Dict, Any
 from uuid import UUID, uuid4
 from collections import defaultdict
 
 import aiohttp
-from fastapi import HTTPException, status as status_codes, Body
+from fastapi import HTTPException, status as status_codes
 from pydantic import parse_obj_as
 
 from generic_device_services.router import BaseSensorRouter, SensorInfo, DeviceInfo
@@ -146,12 +146,12 @@ class OldSystemTempSensorRouter(BaseSensorRouter):
         except json.JSONDecodeError as ex:
             raise OldServiceNotWorking(f"Old service returned invalid JSON response {ex}")
 
-    async def add_device(self, payload: Dict[str, Any]) -> SensorInfo:
+    async def add_device(self, params: Dict[str, Any]) -> SensorInfo:
         """
         Create a new temperature sensor in the old service.
 
         Args:
-            payload: Dictionary containing sensor creation data
+            params: Dictionary containing sensor creation data
 
         Returns:
             SensorInfo: Information about the created sensor
@@ -161,8 +161,8 @@ class OldSystemTempSensorRouter(BaseSensorRouter):
             HTTPException: If the sensor creation fails
         """
         try:
-            # Create sensor data from payload
-            sensor_data = OldServiceTempSensorCreateInfo(**payload)
+            # Create sensor data from params
+            sensor_data = OldServiceTempSensorCreateInfo(**params)
 
             # Prepare request to old service
             url = f"{self._old_service_url}/api/v1/sensors"

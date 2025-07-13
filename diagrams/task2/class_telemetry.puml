@@ -76,6 +76,7 @@ end note
 telemetry_queue_dumper_floating_note .. TelemetryQueueDumper
 
 
+
 class TelemetryQueueReader {
 +__init__(telemetry_queue_url)
 + <async> yield_telemetry (source_id, start_time, format) -> Generator[TelemetrySampleInfo]

@@ -66,8 +66,8 @@ class BaseDeviceRouter(APIRouter):
             return await self.get_devices(available_only=available_only, active_only=active_only)
 
         @self.post("/device/add")
-        async def add_device(payload: Dict[str, Any] = Body()) -> DeviceInfo:
-            return await self.add_device(payload)
+        async def add_device(params: Dict[str, Any] = Body()) -> DeviceInfo:
+            return await self.add_device(params)
 
         @self.get("/device/{device_id}/info")
         async def get_device(device_id: int) -> DeviceInfo:
@@ -120,7 +120,7 @@ class BaseDeviceRouter(APIRouter):
     async def get_device_settings(self, device_id: int) -> DeviceSettingsInfo:
         self._raise_not_implemented()
 
-    async def add_device(self, payload: Dict[str, Any]) -> DeviceInfo:
+    async def add_device(self, params: Dict[str, Any]) -> DeviceInfo:
         self._raise_not_implemented()
 
     async def delete_device(self, device_id: int):
@@ -164,8 +164,8 @@ class BaseSensorRouter(BaseDeviceRouter):
             return await self.get_devices(available_only=available_only, active_only=active_only)
 
         @self.post("/device/add")
-        async def add_device(payload: Dict[str, Any] = Body()) -> Union[SensorInfo, DeviceInfo]:
-            return await self.add_device(payload)
+        async def add_device(params: Dict[str, Any] = Body()) -> Union[SensorInfo, DeviceInfo]:
+            return await self.add_device(params)
 
         @self.get("/device/{device_id}/info")
         async def get_device(device_id: int) -> Union[SensorInfo, DeviceInfo]:
@@ -208,7 +208,7 @@ class BaseSensorRouter(BaseDeviceRouter):
     async def get_device(self, device_id: int) -> SensorInfo:
         self._raise_not_implemented()
 
-    async def add_device(self, payload: Dict[str, Any]) -> Union[SensorInfo, DeviceInfo]:
+    async def add_device(self, params: Dict[str, Any]) -> Union[SensorInfo, DeviceInfo]:
         self._raise_not_implemented()
 
     async def get_device_measurement_processes(

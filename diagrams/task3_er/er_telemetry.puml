@@ -48,7 +48,7 @@ enum TelemetryFormat <<enum>> {
   TEXT
 }
 
-entity TelemetrySource {
+entity MeasurementProcess {
     * id: int
     name: str
     measurement_unit_id: int
@@ -61,8 +61,8 @@ entity TelemetrySource {
 }
 
 note as telemetry_source_note
-    Источник телеметрических данных.
-    На один датчик может приходиться несколько источников данных
+    Источник телеметрических данных от же "серия данных".
+    На один датчик может приходиться несколько таких источников данных
     (например, сохраняющих данные в разном формате).
 
     Если нам пришло сообщение, что датчик переключили
@@ -77,13 +77,13 @@ note as telemetry_source_note
     и создадим новый источник по этому же датчику.
     end note
 
-telemetry_source_note -- TelemetrySource
+telemetry_source_note -- MeasurementProcess
 
 
-TelemetrySource }o-|| MeasurementUnit
+MeasurementProcess }o-|| MeasurementUnit
 
-TelemetryFormat <-- TelemetrySource: uses
-TelemetrySource "0-N" }o--|| "1" Sensor
+TelemetryFormat <-- MeasurementProcess: uses
+MeasurementProcess "0-N" }o--|| "1" Sensor
 
 
 entity "CustomTelemetrySample" as custom_telemetry_sample {
@@ -116,11 +116,11 @@ entity "BoolTelemetrySample" as bool_telemetry_sample {
     <<optional>> value: bool
 }
 
-TelemetrySource ||--o{ custom_telemetry_sample
-TelemetrySource ||--o{ float_telemetry_sample
-TelemetrySource ||--o{ int_telemetry_sample
-TelemetrySource ||--o{ text_telemetry_sample
-TelemetrySource ||--o{ bool_telemetry_sample
+MeasurementProcess ||--o{ custom_telemetry_sample
+MeasurementProcess ||--o{ float_telemetry_sample
+MeasurementProcess ||--o{ int_telemetry_sample
+MeasurementProcess ||--o{ text_telemetry_sample
+MeasurementProcess ||--o{ bool_telemetry_sample
 
 note as telemetry_tables_note
 В этих таблицах будем хранить результаты измерений.
@@ -167,7 +167,7 @@ end note
 status_event_note .. StatusEvent
 
 StatusEvent "0-N" }o--o{ "0-N" Sensor
-StatusEvent "0-N" }o--o{ "0-N" TelemetrySource
+StatusEvent "0-N" }o--o{ "0-N" MeasurementProcess
 
 enum StatusEventType <<enum>> {
     OTHER
