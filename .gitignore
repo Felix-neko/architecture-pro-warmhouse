@@ -1,3 +1,3 @@
 .DS_Store
 /apps/smart_home/temperature_api/uv.lock
-/apps/smart_home_microservices/generic_sensor_service/generic_sensor_service.egg-info/
+/apps/smart_home_microservices/generic_device_services/generic_sensor_service.egg-info/

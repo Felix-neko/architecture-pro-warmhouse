@@ -1,5 +1,5 @@
 """
-DTO-классы для датчиков (в основном, настройки)
+DTO-классы для устройств
 """
 
 from uuid import UUID, uuid4
@@ -11,6 +11,49 @@ from enum import Enum
 from pydantic import BaseModel, Field, ConfigDict
 
 from telemetry_dto import TelemetrySampleFormat
+
+
+class DeviceType(str, Enum):
+    SENSOR = "SENSOR"
+    ACTUATOR = "ACTUATOR"
+    OTHER = "OTHER"
+
+
+class DeviceInfo(BaseModel):
+    """Информация об устройстве"""
+
+    device_id: int = Field(
+        description="ID устройства в рамках своего сервиса (разные сервисы устройств будут смотреть на разные схемы БД)"
+    )
+    device_uuid: UUID = Field(
+        default_factory=uuid4,
+        description="Идентификатор устройства, глобально уникальный для каждого конкретного устройства, "
+        "даже разных производителей и сервисов",
+    )
+    name: str = Field(description="Короткое и удобное имя устройства")
+    display_name: Optional[str] = Field(
+        default=None, description="Более подробное название, для отображения в интерфейсе"
+    )
+    model_name: Optional[str] = Field(default=None, description="Модель устройства (например, DS18B20)")
+    device_type: DeviceType = Field(default=DeviceType.OTHER, description="Тип устройства")
+
+    url: Optional[str] = Field(default=None, description="URL для доступа к устройства, если применимо")
+    min_health_check_interval: Optional[bool] = Field(
+        default=None, description="Минимальный интервал между проверками работоспособности устройства"
+    )
+
+    last_health_check: Optional[datetime] = Field(
+        default=None, description="Время последней успешной проверки работоспособности"
+    )
+
+    is_active: Optional[bool] = Field(
+        default=False, description="Включен/выключен (если его можно переводить в спящий режим без отключения от сети)"
+    )
+
+    is_alive: bool = Field(
+        default=False,
+        description="Доступно ли устройство по сети (если умеет это показывать отдельно от запроса на измерения)",
+    )
 
 
 class SensorType(str, Enum):
@@ -27,47 +70,16 @@ class SensorType(str, Enum):
     OTHER = "OTHER"
 
 
-class SensorInfo(BaseModel):
+class SensorInfo(DeviceInfo):
     """Информация о датчике в системе."""
 
-    sensor_id: int = Field(
-        description="ID датчика в рамках своего сервиса (разные сервисы датчиков будут смотреть на разные схемы БД)"
-    )
-    sensor_uuid: UUID = Field(
-        default_factory=uuid4,
-        description="Идентификатор датчика, глобально уникальный для каждого конкретного датчика, "
-        "даже разных производителей и сервисов",
-    )
-    name: str = Field(description="Короткое и удобное имя датчика")
-    display_name: Optional[str] = Field(
-        default=None, description="Более подробное название, для отображения в интерфейсе"
-    )
-
-    type: SensorType = Field(default=SensorType.OTHER, description="Тип датчика (температура, CO2 и т.д.)")
-    model_name: Optional[str] = Field(default=None, description="Модель датчика (например, DS18B20)")
-    url: Optional[str] = Field(default=None, description="URL для доступа к датчику, если применимо")
+    sensor_type: SensorType = Field(default=SensorType.OTHER, description="Тип датчика (температура, CO2 и т.д.)")
     needs_polling: Optional[bool] = Field(
         default=None, description="Требуется ли опрашивать датчик (true) или он сам отправляет данные (false)"
     )
 
     min_sampling_interval: Optional[float] = Field(
         default=None, description="Минимальный интервал между опросами датчика в секундах"
-    )
-    min_health_check_interval: Optional[bool] = Field(
-        default=None, description="Минимальный интервал между проверками работоспособности датчика"
-    )
-
-    last_health_check: Optional[datetime] = Field(
-        default=None, description="Время последней успешной проверки работоспособности"
-    )
-
-    is_active: Optional[bool] = Field(
-        default=False, description="Включен/выключен (если его можно переводить в спящий режим без отключения от сети)"
-    )
-
-    is_alive: bool = Field(
-        default=False,
-        description="Доступен ли датчик по сети (если он умеет это показывать отдельно от запроса на измерения)",
     )
 
 
@@ -91,12 +103,11 @@ class MeasurementProcessInfo(BaseModel):
     )
 
 
-class SensorSettingsInfo(BaseModel):
+class DeviceSettingsInfo(BaseModel):
     """
-    Настройки датчика.
+    Настройки устройства.
 
-    Это словарь с произвольными данными, схема которого определяется конкретной
-    реализацией датчика и загружается отдельно.
+    Объект с произвольными полями, схема определяется конкретным устройством и загружается отдельно.
     """
 
     model_config = ConfigDict(
@@ -107,8 +118,8 @@ class SensorSettingsInfo(BaseModel):
     )
 
 
-class SensorSettingsDataType(str, Enum):
-    """Типы данных для полей настроек датчика."""
+class DeviceSettingsDataType(str, Enum):
+    """Типы данных для отдельных настроек устройства"""
 
     INT = "INT"
     FLOAT = "FLOAT"
@@ -117,12 +128,11 @@ class SensorSettingsDataType(str, Enum):
     JSON = "JSON"
 
 
-class SensorSettingsFieldInfo(BaseModel):
+class DeviceSettingsFieldInfo(BaseModel):
     """
-    Метаданные поля настроек датчика.
+    Метаданные: поля настроек.
 
-    Содержит информацию, необходимую для генерации пользовательского интерфейса
-    для настройки параметров датчика.
+    Содержит информацию, необходимую для генерации виджета настройки для настройки параметров устройства.
     """
 
     name: str = Field(description="Идентификатор поля в настройках")
@@ -130,7 +140,7 @@ class SensorSettingsFieldInfo(BaseModel):
         default=None, description="Человекочитаемое название поля для отображения в интерфейсе"
     )
     description: Optional[str] = Field(default=None, description="Подробное описание назначения и использования поля")
-    data_type: SensorSettingsDataType = Field(default=SensorSettingsDataType.JSON, description="Тип данных поля")
+    data_type: DeviceSettingsDataType = Field(default=DeviceSettingsDataType.JSON, description="Тип данных поля")
     min_value: Optional[float] = Field(default=None, description="Минимальное допустимое значение (для числовых типов)")
     max_value: Optional[float] = Field(
         default=None, description="Максимальное допустимое значение (для числовых типов)"
