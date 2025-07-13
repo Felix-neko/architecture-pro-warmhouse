@@ -32,3 +32,15 @@ class OldServiceTempSensorInfo(BaseModel):
     status: str = Field(description="Current status of the sensor")
     last_updated: datetime = Field(description="Timestamp of the last update")
     created_at: datetime = Field(description="Timestamp when the sensor was created")
+
+
+class OldServiceTempSensorCreateInfo(BaseModel):
+    """
+    Data needed to create a new temperature sensor in the old service.
+    Corresponds to the SensorCreate struct in the Go codebase.
+    """
+
+    name: str = Field(description="Name of the sensor")
+    type: str = Field(description="Type of the sensor", default="TEMPERATURE")
+    location: str = Field(description="Physical location where the sensor is installed")
+    unit: str = Field(default="°C", description="Unit of measurement (e.g., '°C' for Celsius)")

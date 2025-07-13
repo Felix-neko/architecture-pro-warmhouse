@@ -34,7 +34,6 @@ class BaseDeviceRouter(APIRouter):
     Для исполнительных устройств отдельных методов управления не делаем,
     команду на различные действия будем давать через установку соответствующих настроек
     (например, "открыть ворота" будет делаться через /device/{device_id}/set_settings?fld_name=is_opened&fld_value=true)
-
     """
 
     def _raise_not_implemented(self):
@@ -43,10 +42,21 @@ class BaseDeviceRouter(APIRouter):
         method_name = inspect.currentframe().f_back.f_code.co_name
         raise NotImplementedHttpError(f"method {method_name}() should be implemented in child classes!")
 
-    def __init__(self, tags: Optional[List[str]] = None, telemetry_queue_url: Optional[str] = None):
+    def __init__(
+        self, tags: Optional[List[str]] = None, telemetry_queue_url: Optional[str] = None, add_routes: bool = True
+    ):
         super().__init__(tags=tags)
         self._telemetry_queue_url = telemetry_queue_url
+        # Чтобы поддерживалось внутреннее состояние (и объект роутера не пересоздавался при каждом запуске),
+        # HTTP-маршруты будем надевать на методы прямо в __init__
 
+        # Но: чтобы у классов-наследников можно было выполнить привязку HTTP-маршрутов к методам,
+        # и использовался именно тот response_model, который указан у наследников, то делаем опцию add_routes: bool,
+        # чтобы наследник мог сперва вызвать свой _initialize_routes(), потом уже родительский.
+        if add_routes:
+            self._initialize_routes()
+
+    def _initialize_routes(self):
         @self.get("/health_check")
         async def health_check() -> Optional[bool]:
             return await self.health_check()
@@ -56,15 +66,15 @@ class BaseDeviceRouter(APIRouter):
             return await self.get_devices(available_only=available_only, active_only=active_only)
 
         @self.post("/device/add")
-        async def add_device(payload: Optional[Any] = Body()) -> DeviceInfo:
+        async def add_device(payload: Dict[str, Any] = Body()) -> DeviceInfo:
             return await self.add_device(payload)
 
         @self.get("/device/{device_id}/info")
-        async def get_device_info(device_id: int) -> DeviceInfo:
+        async def get_device(device_id: int) -> DeviceInfo:
             return await self.get_device(device_id)
 
         @self.put("/device/{device_id}/active/{is_active}")
-        async def add_device(device_id: int, is_active: bool):
+        async def set_device_active(device_id: int, is_active: bool):
             await self.set_device_active(device_id, is_active)
 
         @self.put("/device/{device_id}/health_check_interval/{interval}")
@@ -89,11 +99,6 @@ class BaseDeviceRouter(APIRouter):
         async def update_device_settings_field(device_id, fld_name: str, fld_value: Optional[Any] = Body()):
             await self.update_device_settings_field(device_id, fld_name, fld_value)
 
-        @self.get("device/{device_id}/settings/update_field")
-        # debug purposes!
-        async def update_device_settings_field(device_id, fld_name: str, fld_value: Optional[Any]):
-            await self.update_device_settings_field(device_id, fld_name, fld_value)
-
         @self.get("/device/{device_id}/settings_schema")
         async def get_device_settings_schema(device_id: int) -> Dict[str, DeviceSettingsFieldInfo]:
             return await self.get_device_settings_schema(device_id)
@@ -115,7 +120,7 @@ class BaseDeviceRouter(APIRouter):
     async def get_device_settings(self, device_id: int) -> DeviceSettingsInfo:
         self._raise_not_implemented()
 
-    async def add_device(self, payload: Any) -> DeviceInfo:
+    async def add_device(self, payload: Dict[str, Any]) -> DeviceInfo:
         self._raise_not_implemented()
 
     async def delete_device(self, device_id: int):
@@ -144,12 +149,14 @@ class BaseSensorRouter(BaseDeviceRouter):
     Нужно собраться с духом, помолиться и реализовать эти абстрактные методы в классах-наследниках...
     """
 
-    def __init__(self, tags: Optional[List[str]] = None):
-        super().__init__(tags=tags)
+    def __init__(self, tags: Optional[List[str]] = None, telemetry_queue_url: Optional[str] = None):
+        super().__init__(tags=tags, telemetry_queue_url=telemetry_queue_url, add_routes=False)
+        self._initialize_routes()
+        super()._initialize_routes()
 
-        # Чтобы поддерживалось внутреннее состояние (и объект роутера не пересоздавался при каждом запуске),
-        # HTTP-маршруты будем надевать на методы прямо в __init__
+    def _initialize_routes(self):
 
+        # Для части родительских методов переопределим response_model
         @self.get("/all_devices")
         async def get_devices(
             available_only: bool = True, active_only: bool = False
@@ -157,12 +164,14 @@ class BaseSensorRouter(BaseDeviceRouter):
             return await self.get_devices(available_only=available_only, active_only=active_only)
 
         @self.post("/device/add")
-        async def add_device(payload: Optional[Any] = Body()) -> Union[SensorInfo, DeviceInfo]:
+        async def add_device(payload: Dict[str, Any] = Body()) -> Union[SensorInfo, DeviceInfo]:
             return await self.add_device(payload)
 
         @self.get("/device/{device_id}/info")
         async def get_device(device_id: int) -> Union[SensorInfo, DeviceInfo]:
             return await self.get_device(device_id)
+
+        # И добавим ещё немножко методов
 
         @self.get("/device/{device_id}/measurement_processes")
         async def get_measurement_processes(
@@ -196,10 +205,10 @@ class BaseSensorRouter(BaseDeviceRouter):
         """List all registered devices."""
         self._raise_not_implemented()
 
-    async def get_device(self, device_id: int) -> Union[SensorInfo, DeviceInfo]:
+    async def get_device(self, device_id: int) -> SensorInfo:
         self._raise_not_implemented()
 
-    async def add_device(self, payload: Any) -> Union[SensorInfo, DeviceInfo]:
+    async def add_device(self, payload: Dict[str, Any]) -> Union[SensorInfo, DeviceInfo]:
         self._raise_not_implemented()
 
     async def get_device_measurement_processes(

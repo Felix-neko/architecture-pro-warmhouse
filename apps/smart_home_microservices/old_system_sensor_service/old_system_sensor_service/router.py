@@ -1,17 +1,18 @@
 import json
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Union, Any
 from uuid import UUID, uuid4
 from collections import defaultdict
 
 import aiohttp
-from fastapi import HTTPException, status as status_codes
+from fastapi import HTTPException, status as status_codes, Body
 from pydantic import parse_obj_as
 
-from generic_device_services.router import BaseSensorRouter, SensorInfo
+from generic_device_services.router import BaseSensorRouter, SensorInfo, DeviceInfo
 from generic_device_services.router import NotImplementedHttpError
+from generic_device_services.device_dto import DeviceType, SensorType
 
 from old_system_sensor_service.settings import settings
-from old_system_sensor_service.dto import OldServiceTempSensorInfo
+from old_system_sensor_service.dto import OldServiceTempSensorInfo, OldServiceTempSensorCreateInfo
 
 
 class OldServiceNotWorking(HTTPException):
@@ -27,57 +28,6 @@ class OldSystemTempSensorRouter(BaseSensorRouter):
         self._old_service_url = old_service_url
         self._request_timeout = 2
         self._sensor_uuids: Dict[int, UUID] = defaultdict(uuid4)
-
-        # Add some hardcoded temperature sensors using SensorInfo
-        # self._sensors = {
-        #     1: SensorInfo(
-        #         device_id=1,
-        #         name="Living Room Temperature",
-        #         display_name="Living Room",
-        #         type=SensorType.TEMPERATURE,
-        #         model_name="DS18B20",
-        #         is_active=True,
-        #         is_alive=True,
-        #         min_sampling_interval=1.0,
-        #     ),
-        #     2: SensorInfo(
-        #         device_id=2,
-        #         name="Bedroom Temperature",
-        #         display_name="Bedroom",
-        #         type=SensorType.TEMPERATURE,
-        #         model_name="DS18B20",
-        #         is_active=True,
-        #         is_alive=True,
-        #         min_sampling_interval=1.0,
-        #     ),
-        #     3: SensorInfo(
-        #         device_id=3,
-        #         name="Kitchen Temperature",
-        #         display_name="Kitchen",
-        #         type=SensorType.TEMPERATURE,
-        #         model_name="DS18B20",
-        #         is_active=True,
-        #         is_alive=True,
-        #         min_sampling_interval=1.0,
-        #     ),
-        # }
-        # Initialize empty readings for each sensor
-        # self._readings = {sensor_id: [] for sensor_id in self._sensors}
-
-    # async def get_sensors(self, available_only: bool = True, active_only: bool = False) -> List[SensorInfo]:
-    #     """Get a list of all registered temperature sensors."""
-    #     sensors = list(self._sensors.values())
-    #
-    #     if available_only:
-    #         sensors = [s for s in sensors if s.is_active and s.is_alive]
-    #
-    #     if active_only:
-    #         sensors = [s for s in sensors if self._readings.get(s.device_id)]
-    #
-    #     return sensors
-
-    async def hello(self) -> str:
-        return "Temperature sensor service is running!"
 
     async def health_check(self) -> Optional[bool]:
         url = f"{self._old_service_url}/health"
@@ -101,7 +51,28 @@ class OldSystemTempSensorRouter(BaseSensorRouter):
         except Exception as e:
             raise OldServiceNotWorking(f"Unexpected error during health check: {str(e)}")
 
-    async def get_device(self, device_id: int) -> Optional[SensorInfo]:
+    def _convert_to_sensor_info(self, old_sensor_info: OldServiceTempSensorInfo) -> SensorInfo:
+        """Convert OldServiceTempSensorInfo to SensorInfo.
+
+        Args:
+            old_sensor_info: The sensor data from the old service
+
+        Returns:
+            SensorInfo: The converted sensor information
+        """
+        return SensorInfo(
+            device_id=old_sensor_info.id,
+            device_uuid=self._sensor_uuids[old_sensor_info.id],
+            name=old_sensor_info.name,
+            display_name=f"{old_sensor_info.name}\nLocation: {old_sensor_info.location}",
+            sensor_type=SensorType.TEMPERATURE,
+            needs_polling=True,
+            model_name=None,
+            is_active=old_sensor_info.status.lower() == "active",
+            is_alive=old_sensor_info.status.lower() == "active",
+        )
+
+    async def get_device(self, device_id: int) -> SensorInfo:
         """Get information about a specific sensor by its ID.
 
         Args:
@@ -113,40 +84,30 @@ class OldSystemTempSensorRouter(BaseSensorRouter):
         Raises:
             OldServiceNotWorking: If there's an error communicating with the old service
         """
-        url = f"{self._old_service_url}/api/v1/sensors/{device_id}"
-        timeout = aiohttp.ClientTimeout(total=self._request_timeout)
-
         try:
+            url = f"{self._old_service_url}/api/v1/sensors/{device_id}"
+            timeout = aiohttp.ClientTimeout(total=self._request_timeout)
+
             async with aiohttp.ClientSession(timeout=timeout) as session:
                 async with session.get(url) as response:
-                    if response.status == 200:
+                    if response.status == status_codes.HTTP_200_OK:
                         sensor_data = await response.json()
-                        try:
-                            sensor = OldServiceTempSensorInfo(**sensor_data)
-                            return SensorInfo(
-                                device_id=sensor.id,
-                                name=sensor.name,
-                                device_uuid=self._sensor_uuids[sensor.id],
-                                needs_polling=True,
-                                model_name=None,
-                                is_active=sensor.status.lower() == "active",
-                                is_alive=sensor.status.lower() == "active",
-                            )
-                        except (TypeError, ValueError) as e:
-                            raise OldServiceNotWorking(
-                                f"Failed to parse sensor data from old service: {str(e)}\n"
-                                f"Received data: {sensor_data}"
-                            )
+                        sensor = OldServiceTempSensorInfo(**sensor_data)
+                        return self._convert_to_sensor_info(sensor)
                     elif response.status == status_codes.HTTP_404_NOT_FOUND:
                         raise HTTPException(
-                            status_code=status_codes.HTTP_404_NOT_FOUND, detail=f"Sensor with ID {device_id} not found"
+                            status_code=status_codes.HTTP_404_NOT_FOUND,
+                            detail=f"Sensor with ID {device_id} not found",
                         )
                     else:
-                        raise OldServiceNotWorking(f"Old service returned status code: {response.status}")
+                        error_detail = await response.text()
+                        raise OldServiceNotWorking(f"Old service returned status {response.status}: {error_detail}")
         except aiohttp.ClientError as e:
             raise OldServiceNotWorking(f"Failed to connect to old service: {str(e)}")
         except json.JSONDecodeError as ex:
             raise OldServiceNotWorking(f"Old service returned invalid JSON response: {ex}")
+        except Exception as e:
+            raise OldServiceNotWorking(f"Unexpected error: {str(e)}")
 
     async def get_devices(self, available_only: bool = True, active_only: bool = False) -> List[SensorInfo]:
         """Get a list of all registered temperature sensors."""
@@ -171,18 +132,7 @@ class OldSystemTempSensorRouter(BaseSensorRouter):
 
                             # Convert old service sensors to new SensorInfo objects
                             new_service_sensors = [
-                                SensorInfo(
-                                    device_id=sensor.id,
-                                    name=sensor.name,
-                                    device_uuid=self._sensor_uuids[
-                                        sensor.id
-                                    ],  # Automatically generates UUID for new IDs
-                                    needs_polling=True,
-                                    model_name=None,
-                                    is_active=sensor.status.lower() == "active",
-                                    is_alive=sensor.status.lower() == "active",
-                                )
-                                for sensor in old_service_sensors
+                                self._convert_to_sensor_info(sensor) for sensor in old_service_sensors
                             ]
                             return new_service_sensors
                         except (TypeError, ValueError) as e:
@@ -195,3 +145,86 @@ class OldSystemTempSensorRouter(BaseSensorRouter):
             raise OldServiceNotWorking(f"Failed to connect to old service: {str(e)}")
         except json.JSONDecodeError as ex:
             raise OldServiceNotWorking(f"Old service returned invalid JSON response {ex}")
+
+    async def add_device(self, payload: Dict[str, Any]) -> SensorInfo:
+        """
+        Create a new temperature sensor in the old service.
+
+        Args:
+            payload: Dictionary containing sensor creation data
+
+        Returns:
+            SensorInfo: Information about the created sensor
+
+        Raises:
+            OldServiceNotWorking: If there's an error communicating with the old service
+            HTTPException: If the sensor creation fails
+        """
+        try:
+            # Create sensor data from payload
+            sensor_data = OldServiceTempSensorCreateInfo(**payload)
+
+            # Prepare request to old service
+            url = f"{self._old_service_url}/api/v1/sensors"
+            timeout = aiohttp.ClientTimeout(total=self._request_timeout)
+
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                async with session.post(
+                    url, json=sensor_data.dict(), headers={"Content-Type": "application/json"}
+                ) as response:
+
+                    if response.status == status_codes.HTTP_201_CREATED:
+                        created_sensor_raw = await response.json()
+                        sensor = OldServiceTempSensorInfo(**created_sensor_raw)
+
+                        return self._convert_to_sensor_info(sensor)
+                    else:
+                        error_detail = await response.text()
+                        raise OldServiceNotWorking(
+                            f"Failed to create sensor. Status: {response.status}, Detail: {error_detail}"
+                        )
+
+        except aiohttp.ClientError as e:
+            raise OldServiceNotWorking(f"Failed to connect to old service: {str(e)}")
+        except json.JSONDecodeError as ex:
+            raise OldServiceNotWorking(f"Old service returned invalid JSON response: {ex}")
+        except Exception as e:
+            raise OldServiceNotWorking(f"Unexpected error: {str(e)}")
+
+    async def delete_device(self, device_id: str):
+        """
+        Delete a sensor from the old service.
+
+        Args:
+            device_id: The ID of the sensor to delete
+
+        Raises:
+            OldServiceNotWorking: If there's an error communicating with the old service
+            HTTPException: If the sensor is not found or deletion fails
+        """
+        try:
+            url = f"{self._old_service_url}/api/v1/sensors/{device_id}"
+            timeout = aiohttp.ClientTimeout(total=self._request_timeout)
+
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                async with session.delete(url) as response:
+                    if response.status == status_codes.HTTP_200_OK:
+                        # Remove the UUID mapping if it exists
+                        del self._sensor_uuids[device_id]
+                        return
+                    elif response.status == status_codes.HTTP_404_NOT_FOUND:
+                        raise HTTPException(
+                            status_code=status_codes.HTTP_404_NOT_FOUND,
+                            detail=f"Sensor with ID {device_id} not found",
+                        )
+                    else:
+                        error_detail = await response.text()
+                        raise OldServiceNotWorking(
+                            f"Failed to delete sensor. Status: {response.status}, Detail: {error_detail}"
+                        )
+        except HTTPException as e:  # Re-raise HTTPException
+            raise e
+        except aiohttp.ClientError as e:
+            raise OldServiceNotWorking(f"Failed to connect to old service: {str(e)}")
+        except Exception as e:
+            raise OldServiceNotWorking(f"Unexpected error: {str(e)}")
