@@ -34,30 +34,50 @@ class TelemetrySampleFormat(str, Enum):
     TEXT = "TEXT"  # Только текстовые данные в UTF-8
 
 
-class TelemetrySample(BaseModel):
+class TelemetrySampleInfo(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     timestamp: datetime = Field(default_factory=lambda: datetime.now().astimezone())
     value: Optional[Any] = None
 
 
-class FloatTelemetrySample(TelemetrySample):
+class FloatTelemetrySampleInfo(TelemetrySampleInfo):
     value: Optional[float] = None
 
 
-class IntTelemetrySample(TelemetrySample):
+class IntTelemetrySampleInfo(TelemetrySampleInfo):
     value: Optional[int] = None
 
 
-class BoolTelemetrySample(TelemetrySample):
+class BoolTelemetrySampleInfo(TelemetrySampleInfo):
     value: Optional[bool] = None
 
 
-class TextTelemetrySample(TelemetrySample):
+class TextTelemetrySampleInfo(TelemetrySampleInfo):
     value: Optional[str] = None
 
 
-class CustomTelemetrySample(TelemetrySample):
+class CustomTelemetrySampleInfo(TelemetrySampleInfo):
     value: Optional[Any] = None  # Any JSON‑serializable type or null
+
+
+class MeasurementProcessInfo(BaseModel):
+    """
+    Информация о процессе измерения, запущенном на датчике.
+    На одном датчике может быть запущено несколько процессов измерения одновременно.
+    """
+
+    sensor_id: int = Field(description="Идентификатор датчика, к которому относится процесс измерения")
+    sample_format: "TelemetrySampleFormat" = Field(description="Формат данных, в котором датчик возвращает измерения")
+    started_at: datetime = Field(
+        default_factory=lambda: datetime.now().astimezone(), description="Время запуска процесса измерения"
+    )
+    stopped_at: Optional[datetime] = Field(
+        default=None, description="Время остановки процесса измерения (None, если процесс ещё выполняется)"
+    )
+    sampling_interval: Optional[float] = Field(
+        default=None,
+        description="Интервал между измерениями в секундах. Может быть None, если датчик сам посылает данные по необходимости",
+    )
 
 
 ###############################################################

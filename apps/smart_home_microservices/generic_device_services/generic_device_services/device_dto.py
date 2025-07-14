@@ -10,8 +10,6 @@ from enum import Enum
 
 from pydantic import BaseModel, Field, ConfigDict
 
-from telemetry_dto import TelemetrySampleFormat
-
 
 class DeviceType(str, Enum):
     SENSOR = "SENSOR"
@@ -82,26 +80,6 @@ class SensorInfo(DeviceInfo):
 
     min_sampling_interval: Optional[float] = Field(
         default=None, description="Минимальный интервал между опросами датчика в секундах"
-    )
-
-
-class MeasurementProcessInfo(BaseModel):
-    """
-    Информация о процессе измерения, запущенном на датчике.
-    На одном датчике может быть запущено несколько процессов измерения одновременно.
-    """
-
-    sensor_id: int = Field(description="Идентификатор датчика, к которому относится процесс измерения")
-    sample_format: TelemetrySampleFormat = Field(description="Формат данных, в котором датчик возвращает измерения")
-    started_at: datetime = Field(
-        default_factory=lambda: datetime.now().astimezone(), description="Время запуска процесса измерения"
-    )
-    stopped_at: Optional[datetime] = Field(
-        default=None, description="Время остановки процесса измерения (None, если процесс ещё выполняется)"
-    )
-    sampling_interval: Optional[float] = Field(
-        default=None,
-        description="Интервал между измерениями в секундах. Может быть None, если датчик сам посылает данные по необходимости",
     )
 
 

@@ -13,11 +13,9 @@ from generic_device_services.device_dto import (
     SensorInfo,
     DeviceSettingsInfo,
     DeviceParamInfo,
-    MeasurementProcessInfo,
-    TelemetrySampleFormat,
 )
 
-from telemetry_dto import TelemetrySample
+from telemetry_dto import TelemetrySample, MeasurementProcessInfo, TelemetrySampleFormat
 
 
 class NotImplementedHttpError(HTTPException):
@@ -42,10 +40,8 @@ class BaseDeviceRouter(APIRouter):
         method_name = inspect.currentframe().f_back.f_code.co_name
         raise NotImplementedHttpError(f"method {method_name}() should be implemented in child classes!")
 
-    def __init__(
-        self, tags: Optional[List[str]] = None, telemetry_queue_url: Optional[str] = None, add_routes: bool = True
-    ):
-        super().__init__(tags=tags)
+    def __init__(self, telemetry_queue_url: Optional[str] = None, add_routes: bool = True, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self._telemetry_queue_url = telemetry_queue_url
         # Чтобы поддерживалось внутреннее состояние (и объект роутера не пересоздавался при каждом запуске),
         # HTTP-маршруты будем надевать на методы прямо в __init__
@@ -184,8 +180,8 @@ class BaseSensorRouter(BaseDeviceRouter):
     Нужно собраться с духом, помолиться и реализовать эти методы в классах-наследниках, хотя бы немножко : 3
     """
 
-    def __init__(self, tags: Optional[List[str]] = None, telemetry_queue_url: Optional[str] = None):
-        super().__init__(tags=tags, telemetry_queue_url=telemetry_queue_url, add_routes=False)
+    def __init__(self, telemetry_queue_url: Optional[str] = None, *args, **kwargs):
+        super().__init__(telemetry_queue_url=telemetry_queue_url, add_routes=False, *args, **kwargs)
         self._initialize_routes()
         super()._initialize_routes()
 

@@ -17,36 +17,36 @@ from aiokafka.structs import ConsumerRecord
 
 from telemetry_dto import (
     TELEMETRY_STATUS_EVENTS_TOPIC,
-    TelemetrySample,
+    TelemetrySampleInfo,
     SensorStatusEvent,
     TelemetrySampleFormat,
-    FloatTelemetrySample,
-    CustomTelemetrySample,
+    FloatTelemetrySampleInfo,
+    CustomTelemetrySampleInfo,
     MeasurementStartedStatusEvent,
     MeasurementStoppedStatusEvent,
     StatusEventTypeAdapter,
 )
 
 
-def deserialize_sample(record: ConsumerRecord, sample_format: TelemetrySampleFormat) -> TelemetrySample:
+def deserialize_sample(record: ConsumerRecord, sample_format: TelemetrySampleFormat) -> TelemetrySampleInfo:
     if sample_format == TelemetrySampleFormat.FLOAT_BINARY:
         timestamp_seconds = record.timestamp / 1000.0
         ts_from_record = datetime.fromtimestamp(timestamp_seconds, tz=timezone.utc)
         blob = record.value
         if blob is None:
-            return FloatTelemetrySample(timestamp=ts_from_record, value=None)
+            return FloatTelemetrySampleInfo(timestamp=ts_from_record, value=None)
         else:
             (has_val,) = struct.unpack(">?", blob[:1])
             if has_val is None:
-                return FloatTelemetrySample(timestamp=ts_from_record, value=None)
+                return FloatTelemetrySampleInfo(timestamp=ts_from_record, value=None)
             else:
                 (val,) = struct.unpack(">f", blob[1:5])
-                return FloatTelemetrySample(timestamp=ts_from_record, value=val)
+                return FloatTelemetrySampleInfo(timestamp=ts_from_record, value=val)
     else:
         raise NotImplementedError("Other formats aren't implemented yet!")
 
 
-def serialize_sample(sample: TelemetrySample, sample_format: TelemetrySampleFormat) -> bytes:
+def serialize_sample(sample: TelemetrySampleInfo, sample_format: TelemetrySampleFormat) -> bytes:
     if sample_format == TelemetrySampleFormat.FLOAT_BINARY:
         if sample.value is None:
             # flag=False, no float data follows
@@ -182,7 +182,7 @@ class TelemetrySubscriber(TelemetryQueueProcessor):
             self.logger.error(f"Error in sample listener: {e}")
             raise
 
-    def process_sample(self, topic: str, sample: TelemetrySample):
+    def process_sample(self, topic: str, sample: TelemetrySampleInfo):
         print(topic, sample)
 
     async def listen_status_events(self):
@@ -225,7 +225,7 @@ class TelemetryPublisher(TelemetryQueueProcessor):
 
         def push_samples_sync(
             self,
-            samples: Union[TelemetrySample, Iterable[TelemetrySample]],
+            samples: Union[TelemetrySampleInfo, Iterable[TelemetrySampleInfo]],
             loop: Optional[asyncio.AbstractEventLoop] = None,
         ):
             if loop is None:
@@ -245,7 +245,7 @@ class TelemetryPublisher(TelemetryQueueProcessor):
             TELEMETRY_STATUS_EVENTS_TOPIC, status_event.model_dump_json().encode("utf-8")
         )
 
-    async def push_samples(self, samples: Union[TelemetrySample, Iterable[TelemetrySample]]):
+    async def push_samples(self, samples: Union[TelemetrySampleInfo, Iterable[TelemetrySampleInfo]]):
         """
         Push one or more samples to Kafka.
 
@@ -256,7 +256,7 @@ class TelemetryPublisher(TelemetryQueueProcessor):
             - For a single sample, uses send_and_wait for immediate confirmation
             - For multiple samples, sends them in parallel and waits for all to complete
         """
-        if isinstance(samples, TelemetrySample):
+        if isinstance(samples, TelemetrySampleInfo):
             # Single sample - use send_and_wait for immediate confirmation
             serialized = serialize_sample(samples, self.sample_format)
             await self.kafka_producer.send_and_wait(self.topic_name, serialized)
@@ -272,7 +272,7 @@ class TelemetryPublisher(TelemetryQueueProcessor):
             if futures:
                 await asyncio.gather(*futures)
 
-    async def pop_sample(self) -> TelemetrySample:
+    async def pop_sample(self) -> TelemetrySampleInfo:
         raise NotImplementedError("Implement it in child classes!")
 
 
@@ -308,7 +308,7 @@ async def push_some_events():
 
     # Create some sample temperature readings
     samples = [
-        FloatTelemetrySample(value=22.5 + i * 0.5)  # Temperature increasing by 0.5°C each sample
+        FloatTelemetrySampleInfo(value=22.5 + i * 0.5)  # Temperature increasing by 0.5°C each sample
         for i in range(5)  # Create 5 samples
     ]
 

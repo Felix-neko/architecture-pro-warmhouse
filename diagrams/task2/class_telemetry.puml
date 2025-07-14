@@ -1,4 +1,4 @@
-@startuml
+    @startuml
 
 !define POST_COLOR #FFE6E6
 !define GET_COLOR #E6F3FF
