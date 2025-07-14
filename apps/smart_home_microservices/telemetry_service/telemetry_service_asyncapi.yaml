@@ -1,0 +1,109 @@
+asyncapi: '3.0.0'
+info:
+  title: Sensor Updates WebSocket API
+  version: '0.0.0'
+  description: |
+    WebSocket API для получения обновлений от датчиков в реальном времени.
+    Сервер отправляет показания датчиков каждую секунду в формате JSON.
+#servers:
+#  development:
+#    host: localhost:8002
+#    protocol: ws
+#    description: Локальный сервер разработки
+#  production:
+#    host: api.example.com
+#    protocol: wss  # Secure WebSocket для продакшена
+#    description: Продакшн сервер
+
+# Определение каналов (эндпоинтов)
+channels:
+  sensorUpdatesChannel:
+    address: /ws/sensor-updates
+    description: |
+      Канал для получения обновлений от датчиков.
+      Клиент подключается к WebSocket и получает поток данных о состоянии датчиков.
+    messages:
+      SensorUpdate:
+        $ref: '#/components/messages/SensorUpdate'
+
+## Операции, доступные в API
+#operations:
+#  subscribeSensorUpdates:
+#    action: receive
+#    channel:
+#      $ref: '#/channels/sensorUpdatesChannel'
+#    summary: Подписаться на обновления датчиков
+#    description: |
+#      Подключение к WebSocket для получения обновлений состояния датчиков.
+#      Сервер будет отправлять JSON сообщения с показаниями каждую секунду.
+#    messages:
+#      - $ref: '#/channels/sensorUpdatesChannel/messages/SensorUpdate'
+
+# Переиспользуемые компоненты
+components:
+  # Определение сообщений
+  messages:
+    SensorUpdate:
+      name: SensorUpdate
+      title: Обновление состояния датчика
+      summary: Сообщение с текущими показаниями датчика
+      description: |
+        JSON объект содержащий идентификатор датчика, температуру 
+        и текущий статус работы.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/SensorUpdate'
+
+      # Примеры сообщений
+      examples:
+        - name: Нормальный статус
+          summary: Датчик работает нормально
+          payload:
+            sensor_id: 2
+            temperature: 21.0
+            status: "OK"
+        - name: Предупреждение
+          summary: Датчик выдает предупреждение
+          payload:
+            sensor_id: 1
+            temperature: 20.5
+            status: "WARN"
+
+  # Схемы данных
+  schemas:
+    SensorUpdate:
+      type: object
+      title: Обновление датчика
+      description: Структура данных для передачи состояния датчика
+      required:
+        - sensor_id
+        - temperature
+        - status
+      properties:
+        sensor_id:
+          type: integer
+          description: Уникальный идентификатор датчика
+          minimum: 1
+          example: 1
+        temperature:
+          type: number
+          format: float
+          description: Текущая температура в градусах Цельсия
+          example: 20.5
+        status:
+          type: string
+          description: Текущий статус работы датчика
+          enum:
+            - "OK"
+            - "WARN"
+            - "ERROR"
+          example: "OK"
+
+      # Дополнительные примеры для схемы
+      examples:
+        - sensor_id: 1
+          temperature: 20.5
+          status: "OK"
+        - sensor_id: 3
+          temperature: 22.0
+          status: "WARN"

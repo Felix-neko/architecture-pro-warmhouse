@@ -1,5 +1,6 @@
 from typing import AsyncGenerator
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.openapi.utils import get_openapi
 from pydantic import BaseModel
 import asyncio
 
@@ -17,6 +18,19 @@ async def sensor_updates_ws(websocket: WebSocket) -> AsyncGenerator[SensorUpdate
     """
     WebSocket endpoint that sends SensorUpdate models as JSON messages.
     Sends a new sensor reading every second.
+
+    **Connection:** ws://localhost:8002/ws/sensor-updates
+
+    **Message Format:** JSON objects matching the SensorUpdate schema
+
+    **Example Message:**
+    ```json
+    {
+        "sensor_id": 1,
+        "temperature": 20.5,
+        "status": "OK"
+    }
+    ```
     """
     await websocket.accept()
     try:
@@ -32,6 +46,11 @@ async def sensor_updates_ws(websocket: WebSocket) -> AsyncGenerator[SensorUpdate
         print("Client disconnected")
     finally:
         await websocket.close()
+
+
+@app.get("/hello")
+async def hello_world() -> str:
+    return "Hello, World!"
 
 
 if __name__ == "__main__":

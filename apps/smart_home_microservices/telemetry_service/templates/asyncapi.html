@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AsyncAPI Docs</title>
+  <script src="https://unpkg.com/@asyncapi/react@latest/umd/dist/index.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module">
+    import { AsyncApiComponent, createServer, loadYaml } from 'https://unpkg.com/@asyncapi/react@latest/esm/index.js';
+
+    (async () => {
+      // подгружаем ваш YAML с сервера
+      const res = await fetch('/asyncapi.yaml');
+      const raw = await res.text();
+      const doc = await loadYaml(raw);
+      AsyncApiComponent.render({ schema: doc }, document.getElementById('root'));
+    })();
+  </script>
+</body>
+</html>
