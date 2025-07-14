@@ -5,56 +5,63 @@
 !define WS_COLOR #E6FFE6
 
 
-class TelemetryRouter {
-    + <<GET>> <<async>> query_telemetry_sources(sensor_ids = None, sensor_names = None) -> List[TelemetrySourceInfo]
-    + <<GET>> <<async>> query_telemetry(source_id, start_time, end_time, format) -> List[TelemetrySampleInfo]
-    + <<WS>> <<async>> subscribe_to_telemetry(source_id, start_time, format) -> WebSocket[TelemetrySampleInfo]
-    + <<GET>> <<async>> heath_check() -> Dict[str, bool]
+abstract BaseTelemetryRouter <<abstract>> {
+    + <<GET>> <<async>> health_check() -> Optional[bool]
+    ---
+    + <<GET>> <<async>> get_measurement_processes(sensor_ids=None, sensor_uuids=None,
+        active_only=False, min_start_ts=None, max_start_ts=None) -> List[MeasurementProcessInfo]
+    ---
+    + <<GET>> <<async>> get_measurement_process(meas_proc_id: int) -> MeasurementProcessInfo
+    + <<GET>> <<async>> get_samples(meas_proc_id: int, start_ts=None, end_ts=None) -> List[TelemetrySampleInfo]
+    + <<WS>> <<async>> stream_samples(meas_proc_id: int) -> WebSocket[TelemetrySampleInfo]
+    - <<KAFKA>> <<async>> _process_status_event(event: StatusEvent) -> None
+    - <<KAFKA>> <<async>> _process_sample(topic_name: str, event: TelemetrySampleInfo) -> None
+    # _raise_not_implemented()
 }
+
+
+TelemetryRouter -> BaseTelemetryRouter: implements
 
 abstract pydantic.BaseModel
 
-class TelemetrySourceInfo {
-    +sensor_info: SensorInfo
-    +format: TelemetryFormat
-}
 
-TelemetrySourceInfo --> pydantic.BaseModel: implements
-TelemetryRouter --> TelemetrySourceInfo : imports
+TelemetryRouter --> telemetry_dto.MeasurementProcessInfo: imports
 
-class SensorInfo {
-    +sensor_id: str
-    +is_active: bool
-    +samples_per_second: float
-}
-
-SensorInfo --> pydantic.BaseModel: implements
-TelemetrySourceInfo --> SensorInfo: uses
 
 package telemetry_dto <<shared>> {
     abstract class TelemetrySampleInfo {
         + timestamp: datetime
     }
 
-    TelemetrySampleInfo --> pydantic.BaseModel: implements
+    TelemetrySampleInfo --> pydantic.BaseModel: inherits
 
 
     class FloatTelemetrySampleInfo{
-        + value: Optional[float]
+        + <<optional>> value: float
     }
     FloatTelemetrySampleInfo --> TelemetrySampleInfo: inherits
 
     class BoolTelemetrySampleInfo {
-        + value: Optional[bool]
+        + <<optional>> value: bool
     }
 
     BoolTelemetrySampleInfo --> TelemetrySampleInfo: inherits
 
 
-    class JsonTelemetrySampleInfo <<Extra.allow>> {
+    class CustomTelemetrySampleInfo <<Extra.allow>> {
 
     }
-    JsonTelemetrySampleInfo  --> TelemetrySampleInfo: inherits
+    CustomTelemetrySampleInfo  --> TelemetrySampleInfo: inherits
+
+    class MeasurementProcessInfo {
+        + sensor_id: int
+        + sample_format: TelemetrySampleFormat
+        + started_at: datetime
+        + <<optional>> stopped_at: datetime
+        + <<optional>> sampling_interval: float
+    }
+
+    MeasurementProcessInfo --> pydantic.BaseModel: inherits
 }
 
 TelemetryRouter --> TelemetrySampleInfo: uses
@@ -63,6 +70,8 @@ TelemetryRouter --> TelemetrySampleInfo: uses
 class TelemetryQueueDumper {
     +__init__(db_conn_str, db_schema, telemetry_queue_url)
 }
+
+
 
 TelemetryRouter --> TelemetryQueueDumper: uses
 
@@ -83,9 +92,9 @@ class TelemetryQueueReader {
 }
 TelemetryRouter "1" --> "many" TelemetryQueueReader: uses
 note as telemetry_queue_reader_floating_note
-    Роутер инстанцирует очередного слушателя,
-    когда получает запрос на открытие вебсокета
-    на обновление телеметрии.
+    Экземпляры этого класса-слушателя создаются роутером телеметрии,
+    когда он получает запрос на открытие вебсокета
+    на обновления телеметрии.
 
     Слушатель подписывается на заданный топик,
     возвращает по нему асинхронный генератор.
@@ -93,6 +102,8 @@ note as telemetry_queue_reader_floating_note
 end note
 TelemetryQueueReader .. telemetry_queue_reader_floating_note
 TelemetryQueueReader --> TelemetrySampleInfo: uses
+TelemetryQueueDumper --> telemetry_dto: uses
+
 
 
 class TelemetryDbReader {
@@ -101,10 +112,27 @@ class TelemetryDbReader {
 }
 TelemetryRouter -- TelemetryDbReader: uses
 TelemetryDbReader --> TelemetrySampleInfo: uses
+TelemetryDbReader --> telemetry_dto: uses
 
 note as telemetry_db_reader_floating_note
     Выполяет асинхронное чтение из БД,
     возвращает выборки телеметрии.
 end note
-TelemetryDbReader .. telemetry_db_reader_floating_note
+telemetry_db_reader_floating_note .. TelemetryDbReader
+
+
+package telemetry_sqla_repo {
+}
+
+TelemetryDbReader --> telemetry_sqla_repo: uses
+TelemetryQueueDumper --> telemetry_sqla_repo: uses
+
+
+
+package telemetry_queue_utils <<shared>> {
+}
+
+TelemetryQueueDumper -> telemetry_queue_utils: uses
+TelemetryQueueReader ---> telemetry_queue_utils: uses
+
 @enduml

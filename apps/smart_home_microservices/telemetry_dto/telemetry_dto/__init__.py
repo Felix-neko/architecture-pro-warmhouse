@@ -35,6 +35,10 @@ class TelemetrySampleFormat(str, Enum):
 
 
 class TelemetrySampleInfo(BaseModel):
+    """
+    Базовый класс для отдельных измерений телеметрии в процессе измерений.
+    """
+
     model_config = ConfigDict(from_attributes=True)
     timestamp: datetime = Field(default_factory=lambda: datetime.now().astimezone())
     value: Optional[Any] = None
@@ -86,6 +90,10 @@ class MeasurementProcessInfo(BaseModel):
 
 
 class StatusEvent(BaseModel):
+    """
+    Базовый класс для событий обновления статуса устройств (например, объявлений о начале/конце измерений на датчике)
+    """
+
     timestamp: datetime
 
     def __init_subclass__(cls, **kwargs):
@@ -143,7 +151,6 @@ class MeasurementStoppedStatusEvent(SensorStatusEvent):
     Датчик закончил измерение, удалите kafka-топик, когда закончите его сгружать в БД
     """
 
-    sensor_uuid: UUID
     kafka_topic_name: str = Field(description="Kafka-топик, от которого надо будет отписаться, когда прочитаем данные")
 
 

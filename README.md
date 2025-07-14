@@ -159,8 +159,8 @@
 ![Sensor Service Class Diagram](https://www.plantuml.com/plantuml/png/jHhjRjl8yR-UOd_APqiFeAG1tBFJfZXVVB7pApM4ZRIs2LCaZwII2Ba0ZbqtTuXnkNy756Zp10KSr-uf_f1VWNoZpimkbqjoAKk-r80jSNU-TcPslkY0z_RuZc3RF8fvuB3xz-DT9-ot0Xx6emSFsEi6Wn_-F8f3tejPp-LHb06tbzSVFV67iGWRRngDoY9hjHwmODJdNkpqsd_aaLZp-yBjC6SG-64SDHg1OhuZF14wlMvVl71weXk943z1bcYNXw9FOhov3RmTIgu5B8lmACWAOJx94388ZO8_Y-nrjlu6OFwqkWdR01kDl1vysnNSZNUxlLtHssikC3Zguo1sV8-xpvxxlhirAvqT4Qk3H4t-WZikV-wAhk-vemv3GkmFR3CSYYK6-CwBqiv3xaQ2c7_ZHF4pUQn7thPVotxzyKQHF-_t5Vycs9mFeWvRSNhnCq1POilUQ8l8vvJdFrTJsSdfW-czU4Pwwq-Bz29DhoirKIAxn9n8xKZr49zlVK_SWODft2uG1m_ZRfMXskZafjzsVHvltSfwPVMRrStL0dUu6I8MKrGsZLwzyk5snB7ZxKJrLjXG4FDOOnZqkPQsZiSIyyHBlTcni9lRHdQ-tMr7kFqAzsstt_Nu0Fo1d1aVmLf3U0Q__X8wxKRW8GDkLQs-GyLJFqH9yniAKGq_AZ49GwSEf1qcNiN2wqVri3KXKJtsOx-TtpWZ02Czpuy5un5x3dGpV1bAkxYbrPFyadnAtwO7wNvoaboa1ybr-Zxv324eYa7I5YnFqaDOFa_tMNAMNAOV685-WlM3z3rBtpBObmGcoMVybfp2_bKoRkTCFiBURx0-GG90wm1fJO382Ip24g0Vjz93M3p97graSufZbhvBnh1wGhZ93JoybG-mcHwnv1gUD87a8fC7DCwq1YfQRzSgh2xfR0WlyaE5_lek-K7Z48SfoQ88M9SuD5IUGPvw4CUUIKdHLvQCIBsL9vLMwykaWPpH5yvNKyznXni_43mQXc8WlBWRX3uO8ohRmpYUJWTmpgsx6sCjPxekUSujlaNk9gxHGy4KTcQpyb9yu5nWbpgrO50kx4Ly483_RllXWCSTjWafS23YSBH1wmzfkQYN4iZCNjCB1UODcphkAgqsibNiBR0hPXSB2KW3tThIGQ4LJpsVRIfrJUm7SpY2Pl-6_kheLmXVi-MS_FxbEQUMN2N2vcclcgSYmlv_vIdCBl0TqWPa0qk60XX2EONKSGw_u_HdIc-OGCuervmdb_1xrSaZPY6F8HQm0igGuGXfafngQGwJ6qN-Kf7_09aAqYA2xsTBADOza_wfJ9s8clu4w40Qv9IdWoy_0f94ndn75A_Jly6Xzu7IIVftoGP4jERJzAXLr4fwPCcIDRQ1P5asEVPpZOPCZikzGJavudPbEVEImY9vbakE3OwIEGa7t3ediNa2RSpi3GpqXigy0e3bhzTM2Rk9pW2LnGNLBiTOHs1nSKNcbVxmUQ4jVJdv9pnT80lKF_ZdUP7B69q0hVqp541OhI1NYOausZrK0LHr3l06jlRTvcOBuD-fZRFqkC8-OmukWKw8zYVYw2raTgglaDjlI98KW0SyRw7eZBmD_3pzq6veHwWQhjskDOXkwhD1mMmJ23rDc64ka0Uawcn0KgifqSqYJVSH-H9q8hmRZm9ObwSj45Y1tKtOX82UVMt_PUFnjmQ-Y7gXG-7VI0F0ef845WUEbxKk6b2ME9Grg1NTig3nLtT1uwxhlnIgMOeCNAfAiCOguAWUfaw9KwP0sRMjpGarD3ji2ENNh6W6HiNcPJCNytzbVJZ4dQTF7wrCzmmd2bm-KirdmRI6SL0Dqq4KL-bZKc3qennW6BhrzC5dh7ECJksa2XGJ5t0CKEoxOsSW371Zu5974K5SFP8ntKLQ8QyGJ2keE67UBNMLyeVsuyq_hpunp2147wePtyNwgbuWrChjLLYv_Z6SvVuFhPOfTgbAiVgZMGVbVcWGcU6Er8OhATNzrLSG7zjqTNLqizxCEp2qrvyMYrNkpLmL_c8KGyo7m8EWcR-PktuGgDrfRZc_UMlEztiYbvsaCh-Hi-9C8ztlXs8ekg48QjEKPF8TmYcQlcNSJJhemk6TkDjjHiBTNgfmeRW1uM8XnyZxXM0OxNPp36d2floec92cUBLKb5k0NUDX1265UplGDXSV3UnIyofbbT1on4vdtw05PKD3bTpnz_Zs7YzN4AOAGM_zOK-MdrPrekqoGjbbpOfATHefLf2Xv8Lbyc-gvmwmJBgaclkjhDTEeG9x9ojo1fNQ2VsHWoYitd2MTOqDGNf4TCer9_K6funASOJ4lNrgR0wXyIXMU2nlFgW1s0SAuwpi-nKhKU99u2S0XvNZXEPmroZN18hDQrfGJS8bFFn7LhwLmfYKr513DXDLrfIwkS5EHvRM-RaHmpWt5PU5WwYQMk6L2bpevwnA6jiPAMpThNt0cdf2-fn08qK4TMd-3onnxOKmiRc6fdAVZdPjAzpLQ0oIXAbZAEUpTaoMqSe_P6D50qWosXa9ezehNL5RFHMAwcaEMMskv8ND2SXxiOW3DKae7uNyDTO1VSbOB8y-p3qTTRT30G9vlL7TRCF4AXGeSs5-zTNUInxko3WWOyXyKMyHehF_8cjAclh0QXS3a3nllhN4v8enkwmaiiLe6c9Ekwgl0dYsM7opQAGluZChaPojNU76wQVokmsxmhEbhWE4Tl3FG610PXeyqgDEAbqBFN_PM_CwgdWFRk__LGtokm8snZPijk5odbi3zgFrLYKSbQO4h2aRQHNnYDWD0khGyv5c1MSKv_uhuuuKuSACIHDhw0DAxCdgnYQ-DfBtXBB51GN56o8iu-55UaZz_hJvm4TYerwRoACMpWqFDEcunB41F9AWoLKrYazDHpX9evWyIJwbHt9sXlCI2inZ2g5q1D25dPzIFc0YXP_ouGTEiO0EnkvFW7OEYUHKMfP6CUcn6WfIVhf19Ix8KLsBqGpdaX9QfcrKWyhJcSv9RfQzXoAHZ-zLA5GGYEAOjW6Dv5Gvyx8ykSa7ZgUaHDGg9OTpcToKBIWzvuCO2LELf2ejKwEgQt9sB2V6DF7JkSumzhqy5TLVqDAGntxhybdDuFiujinwPDAYtVRNhWEt-lQmGD1PiLPDUwhlMUCUCDPfpnwGEaOuKd0KhDMPIkzzYr5pnbU-LefbKlONyulqFmgrg4iiMrkO8hkGmT94snCoponxete-DOXBZCP42sWcQ_JDq0TI_zEZhuuv5FR6wDVlLTrxchqHbiYLbxRLcDYae2XBGNcJqqCTQ_-58Q9I6AfAj4py1DSnVFwemyvieKxMxI3v8GOnlEsbkDEsNgsIovQlbbMbK_3hSkTj5wkMehfiqpdMt8Avi0YXvbL0hUmLwUn8rYDP6dFhuBWqZxPqnOLN_3YYW4Ps49G66zZ0JhT1GGubP6tdQX4ZEzV_0000)
 Диаграмма классов для сервиса работы с датчиками фирмы ACME
 
-![Telemetry Service Class Diagram](https://www.plantuml.com/plantuml/png/jLRTRkD45BxtKyoM2xeYZOIGUX5ABvOcAs2XqApKYwgo9lPaQzNsP3tZNI9KgTrgAQWL4OWBn1MyGHCIMjfj-WepRyIP6JlssWx9Nb2f_favFzyvttV6UU2IhXSIzFLs-wdzwVQJxHtqNglLN6-kMm-IhSVDsKvplVLHgpNRsMtdDi39iYp7nuoXfyGd0U5HVuV6d4JeEml1tmTeOmE2RMx27RD-wC3JyvX4VPkdzZQZSUGGjif8o6XaUov3dw2lQ4XgA5aASK3InOTeRHCzyHZVcsLiwm2VXLswlspILPCKaa4IZYDkSo-0X2HqawSkZGBCgxBXeESNiksstqh6uWvp8gz3R4uNvynbsYMTDdKEoO9qnU8E2EO7jdD0dCDL7MVBS_WUur4DTIZrzwqZoy8TUCSEHxs-YqFkEVL7c94lgKly4eLPGrCQKsvWgO7Q-aLjcqrJG2FpR-a5bRKgv1e0B8De84yL6f2GCwie9kLI5KexqGWyaX8oQ4NaRWEQ7farZzdG2Uy5QUZ-98QwqSpkaSXcnA4XU7HzQkh8nNqN-8MgioWD53C2g7lOESJF2CgcmUKKc6K7E28kK6kgc95N96ecZiJGA4Jf2XGMz1h8nPoeLxqBXQXRbViILHbdWw2b6bCH9u_Y1VPZwF1sZtiqnFwURkP-0aHTvmKfq3rR1pJX0OayXIM3yWWONDIG8XGp5RcMp0ko198SbCyP3QkYR6mqlmN-wjZtwKjDQguByvoMo9qViCf9oJaPlHKd_PkOn6Gh3dhPYMt3b7lSjbVTZWrJ4Dhw784N1WTCW6ivhJvNtdOS-GyNGiabIh64b1E4MIcUgwriBHSlV6OhEmrD_2bkvQdyGLoAYNo5n5IUmSEnc8Ynl43o5JpSmlyRjGlBr-9QkwqXUQ8SnT-mEHHtybpyewoduXviRY2E6EgBk8FhICUuKzxARofFbAaSg2KvG68iBY7wcV9KrX-dAMRnmAzeL4_XJ-Lh07O960QwX39c-HCI8oH-5hycJhy1Y7i8SYiln1KK0RRe2zmz129ejyi8Vr-UepGi97o3u7Q9n11Mff1UDwXkmOSDwKOkqsrKhrSoPyqHq0x1hXPG9fvAaS2totooKDyZlfjz6j4ItyR792GHvZIg_ZOUbVItyk6Ark1AWCF-IYNaH8hpb1Xfeoeb_W5KdYhsv362fjzfbIXUlmSAZnLD1O5gRVqbfeaMbOWD-N9GCo5ljC5OSMVuFWNlHEbNy72l29Kd2RrJyBw1JETmlnOJ48qIjnAivXp0cAZ6kAJjIUMurAt2d2KGBmoaiH8uL7eEWJGmU1uaAHJ2iPPWSRwIyaRmVYL6IgVonxGkYAhy0OGyHR1nedlvMaitZGHDKPWdsbEDud4o6Rzd3IiKR-3ezkIXrf1kOSeRi3I4V8b11J7Pq5JA7OPaAS5KEh_ZERtLoMOCBJYXytFs__piFQeuwyjOarhADIoelJoDKDhyKVm5I3O3OyxKiepW2de_qxGQySFbIX-o_oNE4GGUAhtfCxrwNieAcLNvbZpcLF0l)
-Диаграмма классов для сервиса работы с телеметрией (ориентировочный вариант)
+![Telemetry Service Class Diagram](https://www.plantuml.com/plantuml/png/dLTRJnj757xthvYGXpegjbHLue4If5nmL96K52Bn45MhmJk65NjnTcP9h0g9YofQGODQzQ7gMtz09I1GQ8ZDNvZzHptdxCMxzYouHM8lC-VodNE-SsPzpnOTnnVivTBAA-l9qlEbPNQ_rLgOMPYftKktdYtaEmiphIzRhNndTQMm0KgrMeslIHNojcAFkHIlX2iyeSBUSX0f4RAvkMnxVfvzNsFmzpaiWWDuXqtPyzlmj26ugpQizePeRzOViCOyM-eg9_2v-tej2DplIB7HQ5GQM1VAyWINKGZkVMLrmw0jf1IoBeKlWz1oRFdmcy0NqonTYA9yYQpY7y1qjeGL-6xlOOkx4gGznxUaug6oL6R0u-_AImJukIFLwnT322yJ15_xdU1_mw_Z6hq0_bdc-8fScRtSQbnoh-iAWq78HpawuTlZSULbNI4xmw3Gt-fAoHsKMt2lsYDPNHLhAq5xKznYkW4s5n-r5X-Lh6UfmGgeI5fY2x9Gf-iiMw6r1NmXBnZ4HBR8TLq5NQTj-TmJinW5v28nQu1ODd-VMI5tfB3yG5aEoc1jX5r_KDk63Xbj2b0rz0ea9zEKXQxgzcpkAwVTH9KNWIrSaqKmgR8rorP1qymHyX64wA3MvUrDlYxAUf0TkS53OUVjcWDfkrnAKovImOGEol44bCRhpZARAu6lj0jvm9j97S6FHubSsH2XGrXHDV7VSWEk35QA6ERcWdHwG1HRt8sWdXtKIv7WjSeEeJ6i5-4CqJo6uNHNHaneSAWLqr9bPm8m1JHF8ga2psHdRcxX7LInoLqtU4kbBQIYMks_9SDCkL8kyc5Caw2uGRQjJX1wVBpZMhHS5CUP9MmBPKiqCwGSWkjs9vL5Tuw_RW4w4KAnoiIXMqMOTx9uszosnlH6S791QKTQxjj8HE9fv7L1DJrBBK3gACkgssjME_3nh8Av1IyIpbAFJnUw-mrgMr7e9aFfTZ05LnaQc6s2SJbcqIOfY_A4gKCv0gV_rDVnVloZFj4NyHxJW_W07dRqXJwFZrYy1m_NyFy9Ts7vIb-biphUHKNzDsoUwdvygFz1wO6-0PcFO4UVqaNtuNf6DlgeZNg3U1T5usDSYe-PFjSdOFq0DL7wgyn5RW_qHeMQ6Vn1_0C0Em4CnnJ2EERuFTDdJF-YVqkLVWSGDs3aEZxIbn04oB95tjc4KWITZXJgi_YGPMR1uIS6jnEcJs5b0EufGSqQdCAC4Zb9jbcpQQnShO92ouBRHA4XVOmqWUP8ZahMSuGBdmMP4AlB80hR0Xev_tw0hffcIV_IuVXC-2BaAWZD9_ps6F-clfWY3avvtEzD6I6dLAnYOaX29YR-1PczfBhTG6MEunqimiz4WWzwm63t6YYm2xKxQIJiGzecvGOM8R507sdo7kg-YqjGBf3Qeu8De8mcFYTVbaIg3wYDjEspb1_xGBYqCoxXuOOixgPq682vZmWJxbVw0aY6pK0ua2Dx-YGndGYFzWBYCy1fraRwCWtmA85qZWq1mHs28G96WIOk4E4vKNQq7zCOpoX3PyZh-ASihXlCRHz1nFiC4mmAVIB_8BS4cK7C5wI9hRkJTj8VmwoD19_0eVGKeKwNYiAW-Kx1Noh0niiwR39ZUq1JJKGme_BjazquqSU-uV9ZOBI9dwuDEvZTSG8KknY20CkvZwecfby0e-rS_JDWst2IZ6CTZJoFOS9CbUIDQHgV2f24wf7mAv0dQSHaje_J4wuNB3uWklIJBhpIbpJiRoFz6HW-HHxJsMBkGyDuhm1RckrP4enVx_ADoy545x-uYjyQ5PdBnIVdvAYA4KPwVYZ7bUKV4qLC9H_pPcqZhZoKExJ-1G00)
+Диаграмма классов для сервиса работы с телеметрией
 
 # Задание 3. Разработка ER-диаграммы
 
@@ -175,98 +175,70 @@ ER-диаграмма для RBAC-модели доступа к ресурса�
 
 ### 1. Тип API
 
-В этом проекте я использовал классический REST API, так как:
-- запросов с переменным набором полей у нас ожидается немного (GraphQL можно пока не учить),
-- сложных протоколов запросов-ответов тоже не ожидается (даже если датчики и устройства будут отрабатывать долго, это решаемо в рамках обычных HTTP-запросов).
-
-Хотя если дадите что-нибудь почитать по GraphQL, AsyncAPI и прочему нестандарту,
-особенно с примерами и разборами, то, для чего оно *действительно* нужно и удобно, то я буду признателен.
-
+В этом проекте предполагается использовать как обычное HTTP REST API (для большинства запросов),
+так и вебсокеты (для обновляемых виджетов на дэшбордах фронтенда) + kafka-топики (для отправки телеметрии с сервисов датчиков).
 
 ### 2. Документация API
 
-В этом проекте я использовал FastAPI, в котором документация REST API генерируется автоматически.
-Я старался оставлять побольше комментариев, чтобы все ключевые поля были описаны.
+Я проектировал API для двух связанных сервисов:
+- сервис работы с датчиками;
+- сервис работы с телеметрией
 
-OpenAPI-документация по сервисам работы с устройствами и сервисам работы с датчиками: 
-TODO.
+Оба этих сервиса используют не только HTTP REST API:
+- сервис работы с телеметрией также использует kafka-топики и вебсокеты, 
+- сервис работы с датчиками также использует kafka-топики 
 
-В этом проекте я частично реализовал один сервис для работы с датчиками, реализованы следующие методы:
-#### POST /device/create
+Хинт: если сервис работы с датчиками будет не абстрактным, как у меня, а заточенным под конкретное семейство датчиков,
+то он может использовать ещё и MQTT или другие очереди, и формат этих сообщений тоже надо будет документировать,
+но это, наведеюсь, не в этот раз = )
 
-#### GET /device/create/params
+#### Документация API для абстрактного сервиса работы с телеметрией
+- [OpenAPI для HTTP REST API](apps/smart_home_microservices/telemetry_service_openapi.json): сгенерировал стандартными средствами FastAPI
+- [AsyncAPI для остальных коммуникаций (kafka-топики, вебсокеты)](apps/smart_home_microservices/telemetry_service/telemetry_service_asyncapi.yaml): к сожалению, пришлось собирать вручную, хотя и с использованием LLM.
 
-#### GET /all_devices
-
-#### GET /device/{device_id}/info
-
-#### DELETE /device/{device_id}/delete
-
-#### GET /health_check
+#### Документация API для абстрактного сервиса работы с датчиками
+- [OpenAPI для HTTP REST API](apps/smart_home_microservices/generic_device_services/abstract_sensor_service_openapi.json) (получилось достаточно развесистое)
+- [AsyncAPI для остальных коммуникаций](apps/smart_home_microservices/generic_device_services/[abstract_sensor_service_asyncapi.yaml](apps/smart_home_microservices/generic_device_services/abstract_sensor_service_asyncapi.yaml)) (не сильно отличается от предыдущего AsyncAPI, но пусть будет = )
 
 # Задание 5. Работа с docker и docker-compose
 
-Перейдите в apps.
+Сервис `temperature-api` реализовал в виде FastAPi-приложения, оно находится в директории [`apps/smart_home/temperature_api/temperature_api/`](apps/smart_home/temperature_api/), `Dockerfile` для него там же.
 
-Там находится приложение-монолит для работы с датчиками температуры. В README.md описано как запустить решение.
-
-Вам нужно:
-
-1) сделать простое приложение temperature-api на любом удобном для вас языке программирования, которое при запросе /temperature?location= будет отдавать рандомное значение температуры.
-
-Locations - название комнаты, sensorId - идентификатор названия комнаты
-
-```
-	// If no location is provided, use a default based on sensor ID
-	if location == "" {
-		switch sensorID {
-		case "1":
-			location = "Living Room"
-		case "2":
-			location = "Bedroom"
-		case "3":
-			location = "Kitchen"
-		default:
-			location = "Unknown"
-		}
-	}
-
-	// If no sensor ID is provided, generate one based on location
-	if sensorID == "" {
-		switch location {
-		case "Living Room":
-			sensorID = "1"
-		case "Bedroom":
-			sensorID = "2"
-		case "Kitchen":
-			sensorID = "3"
-		default:
-			sensorID = "0"
-		}
-	}
-```
-
-2) Приложение следует упаковать в Docker и добавить в docker-compose. Порт по умолчанию должен быть 8081
-
-3) Кроме того для smart_home приложения требуется база данных - добавьте в docker-compose файл настройки для запуска postgres с указанием скрипта инициализации ./smart_home/init.sql
-
-Для проверки можно использовать Postman коллекцию smarthome-api.postman_collection.json и вызвать:
-
-- Create Sensor
-- Get All Sensors
-
-Должно при каждом вызове отображаться разное значение температуры
-
-Ревьюер будет проверять точно так же.
+[docker-compose для проекта-монолита](apps/docker-compose.yml) я модифицировал: 
+- добавил туда контейнер с моим temperature-api, 
+- добавил скрипт для инициализации БД датчиков,
+- добавил использование сети `shared-network`, чтобы можно было обращаться к этим контейнерам из `docker-compose` от следующей задачи.
 
 
 # **Задание 6. Разработка MVP**
 
-Необходимо создать новые микросервисы и обеспечить их интеграции с существующим монолитом для плавного перехода к микросервисной архитектуре. 
+Сроки сжатые, материал велик, так что эту задачу я делал на минималках:
+- реализовал только микросервис для работы с датчиками (адаптер вокруг монолита);
+- реализовал только часть методов, необходимых для создания/удаления датчиков и просмотра информации о них.
 
-### **Что нужно сделать**
+Запись данных в kafka я фактически не реализовывал за нехваткой времени и сил,
+в надежде, что добрый ревьюер и так поставит зачёт -- и позволит, не размениваясь, перейти к следующей задаче. 
 
-1. Создайте новые микросервисы для управления телеметрией и устройствами (с простейшей логикой), которые будут интегрированы с существующим монолитным приложением. Каждый микросервис на своем ООП языке.
-2. Обеспечьте взаимодействие между микросервисами и монолитом (при желании с помощью брокера сообщений), чтобы постепенно перенести функциональность из монолита в микросервисы. 
+Чтобы это запустить, нужно сначала запустить монолит, а уже потом запустить новый микросервис:
+`cd apps && docker compose up -d`
+`cd apps/smart_home_microservices && docker compose up -d`
 
-В результате у вас должны быть созданы Dockerfiles и docker-compose для запуска микросервисов. 
+
+### Реализованные методы
+- Создание устройства: POST http://localhost:8000/device/create
+и передать в body:
+```
+{
+    "name": "Some Room Temperature",
+    "type": "temperature",
+    "location": "Dead Room",
+    "unit": "°C"
+}
+```
+
+- GET http://localhost:8000/all_devices
+- GET http://localhost:8000/device/{device_id}/info
+- DELETE http://localhost:8000/device/{device_id}/delete
+- GET http://localhost:8000/health_check
+
+![Вот, примерно так](https://www.meme-arsenal.com/memes/8e6516e769d5bb9aba06eaa4a26a277a.jpg)

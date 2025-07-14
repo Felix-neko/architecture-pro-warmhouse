@@ -9,7 +9,7 @@ import uvicorn
 from fastapi import FastAPI, APIRouter, HTTPException, status as status_codes, WebSocket, WebSocketDisconnect
 
 
-from telemetry_dto import MeasurementProcessInfo, TelemetrySampleInfo, FloatTelemetrySampleInfo
+from telemetry_dto import MeasurementProcessInfo, TelemetrySampleInfo, FloatTelemetrySampleInfo, StatusEvent
 
 
 class NotImplementedHttpError(HTTPException):
@@ -18,6 +18,11 @@ class NotImplementedHttpError(HTTPException):
 
 
 class BaseTelemetryRouter(APIRouter):
+    """
+    Базовый абстрактный роутер для работы с телеметрией.
+    Декларирует HTTP-эндпоинты, также декларирует WebSocket-эндпоинты и Kafka-подписки.
+    """
+
     def __init__(self, telemetry_queue_url: Optional[str] = None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._telemetry_queue_url = telemetry_queue_url
@@ -27,7 +32,7 @@ class BaseTelemetryRouter(APIRouter):
             """Проверка состояния сервиса"""
             return await self.health_check()
 
-        @self.get("/measurement_processes")
+        @self.get("/measurement_processes", operation_id="get_measurement_processes")
         async def get_measurement_processes(
             sensor_ids: Optional[Union[int, List[int]]] = None,
             sensor_uuids: Optional[Union[UUID, List[UUID]]] = None,
@@ -35,6 +40,10 @@ class BaseTelemetryRouter(APIRouter):
             min_start_ts: Optional[datetime] = None,
             max_start_ts: Optional[datetime] = None,
         ) -> List[MeasurementProcessInfo]:
+            """
+            Вернуть все процессы измерений, которые обрабатывал этот сервис
+            (с возможностью фильтрации по датчикам и времени запуска).
+            """
             return await self.get_measurement_processes(
                 sensor_ids=sensor_ids,
                 sensor_uuids=sensor_uuids,
@@ -45,16 +54,27 @@ class BaseTelemetryRouter(APIRouter):
 
         @self.get("/measurement_process/{meas_proc_id}")
         async def get_measurement_process(meas_proc_id: int) -> MeasurementProcessInfo:
+            """
+            Вернуть информацию об отдельном процессе измерений по его ID
+            """
             return await self.get_measurement_process(meas_proc_id)
 
         @self.get("/measurement_process/{meas_proc_id}/samples")
         async def get_samples(
             meas_proc_id: int, start_ts: Optional[datetime] = None, end_ts: Optional[datetime] = None
         ) -> List[TelemetrySampleInfo]:
+            """
+            Достать из БД все измерения для конкретного процесса.
+            Опционально -- можно извлечь не все измерения, а только в заданном диапазоне времени.
+            """
             return await self.get_samples(meas_proc_id=meas_proc_id, start_ts=start_ts, end_ts=end_ts)
 
         @self.websocket("/measurement_process/{meas_proc_id}/stream")
         async def stream_samples(meas_proc_id: int, websocket: WebSocket) -> AsyncGenerator[TelemetrySampleInfo, None]:
+            """
+            Передавать по вебсокету новые измерения для заданного процесса измерений (в виде JSON-объектов).
+            Нужно для обновляемых виджетов в дэшбордах веб-интерфейса.
+            """
             await websocket.accept()
             try:
                 async for update in self.stream_samples(meas_proc_id):
@@ -88,7 +108,7 @@ class BaseTelemetryRouter(APIRouter):
     ) -> List[TelemetrySampleInfo]:
         self._raise_not_implemented()
 
-    async def stream_samples(self, meas_proc_id: int) -> AsyncGenerator[FloatTelemetrySampleInfo, None]:
+    async def example_stream_samples(self, meas_proc_id: int) -> AsyncGenerator[FloatTelemetrySampleInfo, None]:
         """
         Stream random FloatTelemetrySampleInfo objects with some interval.
 
@@ -122,10 +142,33 @@ class BaseTelemetryRouter(APIRouter):
                 print(f"Error in stream_samples: {e}")
                 break
 
+    async def stream_samples(self) -> AsyncGenerator[TelemetrySampleInfo, None]:
+        self._raise_not_implemented()
+
+    async def _process_status_event(self, event: StatusEvent):
+        """
+        Обработка обновлений статуса устройства, прилетающих из kafka-очереди telemetry_status_events.
+
+        Обработка зависит от типа события (например, подписаться на новый топик в Kafka,
+        когда начался процесс измерений на датчике).
+
+        **Это абстрактный метод, его нужно переопределить в дочернем классе!**
+        """
+        self._raise_not_implemented()
+
+    async def _process_sample(self, topic_name: str, event: TelemetrySampleInfo):
+        """
+        Обработка отдельных сообщений, извлечённых из Kafka-очереди с данными для заданного процесса измерений.
+        Процесс измерений определяем по topic_name.
+
+        **Это абстрактный метод, его нужно переопределить в дочернем классе!**
+        """
+        self._raise_not_implemented()
+
 
 if __name__ == "__main__":
 
-    app = FastAPI(title="Telemetry Service", description="Service for handling telemetry data")
+    app = FastAPI(title="Telemetry Service", description="Сервис телеметрии: абстрактный роутер")
 
     router = BaseTelemetryRouter()
     app.include_router(router)

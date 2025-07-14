@@ -1,11 +1,11 @@
 asyncapi: 3.0.0
 info:
-  title: "AsyncAPI-документация сервиса телеметрии"
+  title: "AsyncAPI-документация сервиса работы с датчиками"
   version: 0.0.0
   description: |
-    **NB: Здесь описаны только методы работы с WEbSocket-каналом и Kafka-тописками!**
+    **NB: Здесь описаны только методы работы Kafka-тописками!**
     
-    **REST API сервиса телеметрии -- смотри в отдельной доке по REST-методам**
+    **REST API сервиса датчиков -- смотри в отдельной доке по REST-методам**
     
 
 #servers:
@@ -18,10 +18,7 @@ channels:
   websocket_telemetry_samples:
     address: /measurement_process/{meas_proc_id}/stream
     title: Поток данных телеметрии
-#    summary: WebSocket endpoint for streaming telemetry samples
-#    description: |
-#      Provides real-time telemetry data for a specific measurement process.
-#      Clients can subscribe to receive updates as new samples are collected.
+
     messages:
       TelemetrySample:
         $ref: '#/components/messages/TelemetrySample'
@@ -39,10 +36,7 @@ channels:
   kafka_telemetry_status_events:
     address: "{kafka_url}://telemetry_status_events"
     title: Поток статусных событий
-#    summary: Kafka topic for measurement status events
-#    description: |
-#      Handles status updates for measurement processes, such as when measurements start or stop.
-#      The service subscribes to this topic to manage its internal state.
+
     messages:
       MeasurementStartedStatusEvent:
         $ref: '#/components/messages/MeasurementStartedStatusEvent'
@@ -52,10 +46,7 @@ channels:
   kafka_telemetry_samples:
     address: "{kafka_url}://telemetry_samples__{sensor_uuid}__{internal_meas_proc_id}"
     title: Поток измерений телеметрии с сервиса датчиков
-#    summary: Kafka-топик для измерений телеметрии в рамках процесса измерений на датчике
-#    description: |
-#      Receives telemetry samples from various sensors.
-#      The service subscribes to dynamic topics based on active measurement processes.
+
     messages:
       TelemetrySample:
         $ref: '#/components/messages/TelemetrySample'
@@ -71,40 +62,27 @@ channels:
         $ref: '#/components/messages/CustomTelemetrySample'
 
 operations:
-  # WebSocket operations
-  stream_telemetry_samples:
+  # Kafka producer operations
+  produce_status_events:
     action: send
-    channel:
-      $ref: '#/channels/websocket_telemetry_samples'
-    summary: Раздача новых измерений телеметрии в реальном времени
-    description: |
-      Отдавать по вебсокету новые измерения для заданного процесса измерений.
-      Нужно для обновляемых виджетов в дэшбордах веб-интерфейса.
-    messages:
-      - $ref: '#/channels/websocket_telemetry_samples/messages/TelemetrySample'
-
-  # Kafka consumer operations
-  consume_status_events:
-    action: receive
     channel:
       $ref: '#/channels/kafka_telemetry_status_events'
 #    summary: Process measurement status events
     description: |
-      Обработка обновлений статуса устройства, прилетающих из kafka-очереди telemetry_status_events.
-      Обработка зависит от типа события (например, подписаться на новый топик в Kafka,
-      когда начался процесс измерений на датчике).
+      Создаём обновления по статуса датчиков, закидываем их в kafka-очередь `telemetry_status_events`.
+      Чаще всего это будут объявления, что началась/закончилась серия измерений на датчике.
     messages:
       - $ref: '#/channels/kafka_telemetry_status_events/messages/MeasurementStartedStatusEvent'
       - $ref: '#/channels/kafka_telemetry_status_events/messages/MeasurementStoppedStatusEvent'
 
-  consume_telemetry_samples:
-    action: receive
+  produce_telemetry_samples:
+    action: send
     channel:
       $ref: '#/channels/kafka_telemetry_samples'
     summary: Process telemetry samples
     description: |
-      Обработка отдельных сообщений, извлечённых из Kafka-очереди с данными для заданного процесса измерений.
-      Процесс измерений определяем по имени топика.
+      Создаём сообщения по конкретным измерениям телеметрии, закидываем их в различные kafka-очереди 
+      (одна серия измерений -- одна kafka-очередь)
     messages:
       - $ref: '#/channels/kafka_telemetry_samples/messages/TelemetrySample'
       - $ref: '#/channels/kafka_telemetry_samples/messages/FloatTelemetrySample'

@@ -15,7 +15,7 @@ from generic_device_services.device_dto import (
     DeviceParamInfo,
 )
 
-from telemetry_dto import TelemetrySample, MeasurementProcessInfo, TelemetrySampleFormat
+from telemetry_dto import TelemetrySampleInfo, MeasurementProcessInfo, TelemetrySampleFormat
 
 
 class NotImplementedHttpError(HTTPException):
@@ -212,7 +212,7 @@ class BaseSensorRouter(BaseDeviceRouter):
         # И добавим ещё немножко методов
 
         @self.get(path="/device/{device_id}/measure")
-        async def measure_once(device_id: int, sample_format: TelemetrySampleFormat) -> TelemetrySample:
+        async def measure_once(device_id: int, sample_format: TelemetrySampleFormat) -> TelemetrySampleInfo:
             """
             Провести однократное измерение на датчике
             """
@@ -274,14 +274,14 @@ class BaseSensorRouter(BaseDeviceRouter):
     async def stop_measurement_process(self, meas_proc_id: int) -> None:
         self._raise_not_implemented()
 
-    async def measure_once(self, device_id: int, sample_format: TelemetrySampleFormat) -> TelemetrySample:
+    async def measure_once(self, device_id: int, sample_format: TelemetrySampleFormat) -> TelemetrySampleInfo:
         self._raise_not_implemented()
 
 
 # Script entrypoint to run with Uvicorn
 if __name__ == "__main__":
 
-    app = FastAPI(title="Smart Home BaseSensorService")
+    app = FastAPI(title="Абстрактный сервис работы с датчиками и устройствами")
     # Choose the appropriate router
     sensor_router = BaseSensorRouter()
     app.include_router(sensor_router)

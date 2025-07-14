@@ -196,7 +196,7 @@ class OldSystemTempSensorRouter(BaseSensorRouter):
         except Exception as e:
             raise OldServiceNotWorking(f"Unexpected error: {str(e)}")
 
-    async def delete_device(self, device_id: str):
+    async def delete_device(self, device_id: int):
         """
         Delete a sensor from the old service.
 
