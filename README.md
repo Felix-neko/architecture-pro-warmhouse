@@ -193,12 +193,12 @@ ER-диаграмма для RBAC-модели доступа к ресурса�
 но это, наведеюсь, не в этот раз = )
 
 #### Документация API для абстрактного сервиса работы с телеметрией
-- [OpenAPI для HTTP REST API](apps/smart_home_microservices/telemetry_service_openapi.json): сгенерировал стандартными средствами FastAPI
+- [OpenAPI для HTTP REST API](apps/smart_home_microservices/telemetry_service/telemetry_service_openapi.json): сгенерировал стандартными средствами FastAPI
 - [AsyncAPI для остальных коммуникаций (kafka-топики, вебсокеты)](apps/smart_home_microservices/telemetry_service/telemetry_service_asyncapi.yaml): к сожалению, пришлось собирать вручную, хотя и с использованием LLM.
 
 #### Документация API для абстрактного сервиса работы с датчиками
 - [OpenAPI для HTTP REST API](apps/smart_home_microservices/generic_device_services/abstract_sensor_service_openapi.json) (получилось достаточно развесистое)
-- [AsyncAPI для остальных коммуникаций](apps/smart_home_microservices/generic_device_services/[abstract_sensor_service_asyncapi.yaml](apps/smart_home_microservices/generic_device_services/abstract_sensor_service_asyncapi.yaml)) (не сильно отличается от предыдущего AsyncAPI, но пусть будет = )
+- [AsyncAPI для остальных коммуникаций](apps/smart_home_microservices/generic_device_services/abstract_sensor_service_asyncapi.yaml) (не сильно отличается от предыдущего AsyncAPI, но пусть будет = )
 
 # Задание 5. Работа с docker и docker-compose
 
