@@ -1,0 +1,180 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+'!include ../../../../C4-PlantUML/C4_Container.puml
+
+!define DEVICONS https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/master/devicons
+!define FONTAWESOME https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/master/font-awesome-5
+!include DEVICONS/python.puml
+!include DEVICONS/postgresql.puml
+!include DEVICONS/react.puml
+!include FONTAWESOME/users.puml
+!include FONTAWESOME/mobile_alt.puml
+!include DEVICONS/redis.puml
+!include FONTAWESOME/exchange_alt.puml
+!include FONTAWESOME/database.puml
+
+AddElementTag("third-party", $bgColor="#f5f5f5", $borderColor="DarkGray", $fontColor="Black", $legendText="Компоненты сторонних производителей")
+
+
+title Система умного дома: диаграмма контейнеров
+
+Person(user, "Пользователь", "Пользователь системы умного дома \n(с возможностью администрирования)")
+
+System_Boundary(frontend_systems, "Фронтэнд-системы") {
+    Container(web_app, "Веб-приложение", "JavaScript, React", $sprite="react")
+    Container(phone_app, "Мобильное приложение", "React Native", $sprite="mobile_alt")
+}
+
+
+Rel(user, web_app, "")
+Rel(user, phone_app, "")
+
+System_Boundary(centralized_systems, "Системы на центральном облаке") {
+    Container(auth_service, "Сервис аутентификации")
+    Container(traffic_routing_service, "Сервис маршрутизации трафика")
+    ContainerDb(update_storage, "Хранилище обновлений", "Docker", $tags=third-party)
+}
+
+Rel(frontend_systems, auth_service, "")
+Rel(frontend_systems, traffic_routing_service, "")
+
+/'
+
+Основной веб-сервис
+################################################
+- отвечает за взаимодействие с пользователем;
+- показывает список датчиков, опционально -- отдельные виджеты от сервисов датиков;
+- показывает список исполнительных устройств, опционально -- отдельные виджеты от сервисов исполнительных устройств;
+- показывает список правил бизнес-логики (например, включения отопления при температуре ниже заданной);
+- показывает визарды регистрации датчиков и исполнительных устройств.
+
+
+Сервисы работы с датчиками
+################################################
+- может быть запущено несколько сервисов, написанных для датчиков различных типов.
+- получают информацию со своих датчиков, различными способами, в заивисимости от типа датчика;
+- преобразуют полученные данные в стандартный формат телеметрии;,
+- складывают преобразованные данные в очередь телеметрии (Kafka или RabbitMQ);
+- настройка сервисов (например, задание частоты опроса датчиков) происходит через REST API;
+- могут формировать свои виджеты в веб-интерфейсе / на мобильном приложении;
+- могут формировать свои визарды регистрации новых датчиков в веб-интерфейсе.
+
+Сервис телеметрии:
+################################################
+- подписывается на все топики в очереди телеметрии, складывает данные в БД телеметрии (TimescaleDB)
+- умеет отдавать срезы телеметрии из базы по REST API;
+- умеет отдавать обновления телеметрии от заданных датчиков по WebSocket (для динамически обновляемых виджетов веб-приложения).
+
+Сервис работы с IP-камерами
+################################################
+- показывает список имеющихся камер;
+- подключается к IP-камерам (например, через RTSP), получая от них входной видеопоток;
+- формирует выходной видеопоток для веб-интерфейса / мобильного приложения (например, по HLS);
+- складывает видеофайлы на удалённую файловую систему с заданной периодичностью;
+- [в перспективе] обрабатывает видеокартинку, формируя специальные сигналы телеметрии при обнаружении посторонних.
+
+Сервисы управления исполнительными устройстами
+################################################
+Предоставляют информацию о том, какое взаимодействие с исполнительными устройствами возможно. Например:
+- управление кондиционером:
+ - включить/выключить кондиционер;
+ - задать мощность охлаждения от 0 до 255;
+ - задать мощность проветривания от 0 до 3;
+- управление воротами:
+ - открыть/закрыть ворота
+Форматы взаимодействия стандартизированы, их немного.
+Выполняет определённое действие при получении команды по REST API (от виджета веб-интерфейса или от сервиса бизнес-логики).
+
+Сервисы бизнес-логики
+################################################
+Получают обновления телеметрии от датчиков (из очереди телеметрии).
+Содержат набор правил бизнес-логики, заданных пользователем через REST API.
+При обновлении телеметрии или по таймеру выполняют определённое действие согласно этим правилам:
+- включить отопление, если температура ниже заданной;
+- включить проветривание, если концентрация CO2 выше заданной
+- перекрыть воду управляемым краном, отключить электричество в ванной и послать жильцу PUSH-уведомление, если сработал датчик протечки.
+
+Сервис обновления системы
+################################################
+- получает команды по REST API от веб-интерфейса / мобильного приложения;
+- может останавливать/перезапускать все остальные сервисы;
+- формирует конфигурацию сборки (финальный docker-compose), где перечислены все компоненты системы, которые должны быть запущены;
+- может скачивать docker-образы заданных версий (для обновления на новую версию или для отката на старую на предыдущую);
+
+'/
+
+    System_Boundary(smart_home_controller_services, "Сервисы контроллера умного дома") {
+        Container(main_web_service, "Основной веб-сервис", "Python, FastAPI")
+        Container(updating_service, "Сервис обновления системы", "Python, FastAPI")
+        ContainerDb(pg_db, "База данных", PostgreSQL, $sprite="postgresql", $tags=third-party)
+        Container(telemetry_service, "Сервис телеметрии", "Python")
+        Container(cctv_service, "Сервис работы с IP-камерами")
+        Container(sensor_service_1, Cервис работы с датчиками #1)
+        Container(sensor_service_2, Cервис работы с датчиками #2)
+        Container(logic_service_1, Cервис бизнес-логики #1)
+        Container(actuator_service_1, Сервис исполнительных устройств #1)
+        Container(actuator_service_2, Сервис исполнительных устройств #2)
+
+        ContainerQueue(mqtt_broker, "Очередь сообщений для датчиков", "MQTT", $tags=third-party)
+        ContainerQueue(telemetry_queue, "Очередь сообщений для телеметрии", "Kafka", $tags=third-party)
+        ContainerDb(telemetry_db, "БД телеметрии", "TimescaleDB", $sprite="database", $tags=third-party)
+    }
+
+    System_Boundary(smart_home_peripherals, "Периферийные устройства"){
+        Container(temp_sensor, "Датчики температуры", $tags=third-party)
+        Container(heater_relay, "Реле включения отопления", $tags=third-party)
+        Container(cctv_camera, "IP-камеры", $tags=third-party)
+        Container(air_conditioner, "Кондиционер", $tags=third-party)
+        Container(co2_sensor, "Датчик CO2", $tags=third-party)
+        Container(smoke_sensor, "Датчик дыма", $tags=third-party)
+        Container(leakage_sensor, Датчик протечки, $tags=third-party)
+        Container(door, Автоматические ворота, $tags=third-party)
+    }
+
+    Rel(main_web_service, actuator_service_1, "Команда открытия ворот по кнопке в виджете")
+    Rel(main_web_service, actuator_service_2, "")
+    Rel(main_web_service, telemetry_queue, "Настройка телеметрии", "HTTP REST")
+    Rel(frontend_systems, telemetry_service, "Просмотр телеметрии", "HTTP REST / WebSocket")
+    Rel(main_web_service, sensor_service_1, "Управление датчиками", "HTTP REST")
+    Rel(main_web_service, sensor_service_2, "Управление датчиками", "HTTP REST")
+
+
+    Rel(actuator_service_1, door, "Окрытие/закрытие ворот")
+    Rel(actuator_service_2, heater_relay, "Включение/выключение отопления")
+    Rel(actuator_service_2, air_conditioner, "Управление кондиционером")
+    Rel(sensor_service_2, leakage_sensor, "Слушает сигналы")
+    Rel(sensor_service_2, smoke_sensor, "Слушает сигналы")
+    Rel(sensor_service_2, telemetry_queue, "Записывает телеметрию в очередь")
+
+'    smart_home_controller_services -[hidden]down-> smart_home_peripherals
+    Rel_D(smart_home_controller_services, smart_home_peripherals, "", "")
+
+    Rel(cctv_service, cctv_camera, "")
+
+    Rel(main_web_service, pg_db, "Читает/записывает", "SQL/TCP")
+    Rel(telemetry_service, telemetry_queue, "Читает из очереди")
+    Rel(telemetry_service, telemetry_db, "Читает/записывает", "SQL/TCP")
+
+    Rel(frontend_systems, cctv_service, "Просмотр видео с камер", "WebSocket/HLS")
+    Rel(frontend_systems, updating_service, "Запрос на обновление системы", "HTTPS")
+    Rel(frontend_systems, main_web_service, "", HTTPS/WebSocket)
+
+    Rel(main_web_service, logic_service_1, "Выставляет правило включения отопления")
+    Rel(logic_service_1, telemetry_queue, "Читает телеметрию датчика температуры")
+    Rel(logic_service_1, actuator_service_2, "Отправляет команду на включение отопления")
+
+
+Rel(updating_service, update_storage, "Выкачивает образы сервисов", "HTTPS")
+Rel(web_app, smart_home_controller_services, "", "HTTPS, WebSocket")
+Rel(phone_app, smart_home_controller_services, "", "HTTPS, WebSocket")
+Rel(temp_sensor, mqtt_broker, "Отправляет данные в очередь", "MQTT")
+Rel(sensor_service_1, mqtt_broker, "Читает данные из очереди", "MQTT")
+Rel(sensor_service_1, temp_sensor, "Управляет работой датчика")
+Rel(sensor_service_1, co2_sensor, "Опрашивает датчик CO2")
+Rel(sensor_service_1, telemetry_queue, "Записывает телеметрию в очередь")
+
+
+LAYOUT_TOP_DOWN()
+SHOW_LEGEND()
+
+@enduml

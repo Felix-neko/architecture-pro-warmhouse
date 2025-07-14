@@ -1,1 +1,9 @@
 .DS_Store
+/apps/smart_home/temperature_api/uv.lock
+/apps/smart_home_microservices/generic_device_services/generic_sensor_service.egg-info/
+/apps/smart_home_microservices/old_system_sensor_service/uv.lock
+/apps/smart_home_microservices/old_system_sensor_service/old_system_sensor_service.egg-info/
+/apps/smart_home_microservices/generic_device_services/.venv/
+/apps/smart_home_microservices/generic_device_services/uv.lock
+/apps/smart_home_microservices/telemetry_service/uv.lock
+/apps/smart_home_microservices/telemetry_service/asyncapi-docs/

@@ -1,0 +1,71 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+'!include ../../../../C4-PlantUML/C4_Component.puml
+
+AddElementTag("shared", $bgColor="LightGreen", $borderColor="DarkGreen", $legendText="Разделяемые подсистемы")
+AddElementTag("third-party", $bgColor="#f5f5f5", $borderColor="DarkGray", $fontColor="Black", $legendText="Библиотеки сторонних производителей")
+
+
+LAYOUT_WITH_LEGEND()
+title Сервис телеметрии: диаграмма компонентов
+
+' А как показать, что это внешние компоненты по отношению к компоненту телеметрии?
+Container(web_app, "Веб-интерфейс")
+Container(phone_app, "Мобильное приложение")
+Container(telemetry_consumer_microservices, "Другие микросервисы умного дома")
+
+note left of telemetry_consumer_microservices: Микросервисы, реализующие различную логику управления умным домом \
+в зависимости от считанной телеметрии (например, перекрыть клапан при срабатывании датчика протечки)"
+
+
+Container_Boundary(telemetry_service, "Сервис телеметрии") {
+    Container_Boundary(api_layer, "API Layer") {
+        Component(fastapi_router, "FastAPI-роутер")
+        Component(fastapi_auth, "FastAPI Auth Middleware")
+
+        Rel(fastapi_router, fastapi_auth, "Uses")
+    }
+
+    Rel(web_app, fastapi_router, "")
+    Rel(phone_app, fastapi_router, "")
+    Rel(telemetry_consumer_microservices, fastapi_router, "")
+
+    Container_Boundary(sevice_layer, "Business Logic Layer") {
+        Component(telemetry_dump_component, "Компонент дампа телеметрии (очередь --> БД)")
+        Component(telemetry_db_query_component, "Компонент выборки телеметрии из БД")
+        Component(telemetry_queue_reading_component, "Компонент чтения телеметрии из очереди")
+    }
+
+    Rel(fastapi_router, telemetry_dump_component, "Просмотр состояния очереди", "async")
+    Rel(fastapi_router, telemetry_queue_reading_component, "Для обновляемых виджетов", "async generator").
+
+    Rel(fastapi_router, telemetry_db_query_component, Для виджетов дэшбордов, "async")
+
+
+    Container_Boundary(data_access_layer, "Data Access / Data Transfer Layer") {
+        Component(telemetry_dto, "DTO-классы", "shared", Pydantic-классы телеметрии, $tags=shared)
+        Component(telemetry_sqla_repo, "SQLAlchemy-репозиторий телеметрии")
+        Component(telemetry_queue_repo, "Kafka-репозиторий телеметрии", shared, $tags=shared)
+
+        Rel(telemetry_sqla_repo, telemetry_dto, "Импортирует")
+        Rel(telemetry_queue_repo, telemetry_dto, "Импортирует")
+    }
+
+    Rel(telemetry_db_query_component, telemetry_dto, "")
+    Rel(telemetry_queue_reading_component, telemetry_dto, "")
+
+    Rel(telemetry_dump_component, telemetry_queue_repo, "Использует для чтения из очереди")
+    Rel(telemetry_dump_component, telemetry_sqla_repo, "Использует для записи в БД")
+    Rel(telemetry_queue_reading_component, telemetry_queue_repo, "")
+
+    Rel(telemetry_db_query_component, telemetry_sqla_repo, "Использует для чтения из БД")
+}
+
+Container_Boundary(infra_layer, "Infrastructure Layer") {
+    ContainerDb(telemetry_input_queue, "Входная очередь телеметрии", "Kafka", "Сервисы работы с датчиками записывают сюда входящую телеметрию", $tags=third-party)
+    ContainerDb(telemetry_db, "БД телеметрии", "TimescaleDB", "Для долговременного хранения телеметрии", $tags=third-party)
+}
+Rel(telemetry_queue_repo, telemetry_input_queue, "Читает данные из очереди", "Kafka")
+Rel(telemetry_sqla_repo, telemetry_db, "Сохраняет данные в БД", "Kafka")
+
+@enduml

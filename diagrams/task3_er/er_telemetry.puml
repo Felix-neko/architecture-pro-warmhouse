@@ -1,0 +1,188 @@
+@startuml
+
+title Телеметрия\n(ER-модель)
+
+entity SensorType {
+    *id: int
+    name: str
+    ---
+    <<optional>> display_name: str
+    <<optional>> description: str
+}
+
+note as sensor_type_note
+Тип датчика (например, датчик CO2, датчик освещения и др.)
+При добавлении новых датчиков нового типа, которого ранее не было
+-- просто добавляем в табличку одну строку без изменения схемы данных.
+end note
+sensor_type_note .. SensorType
+
+entity Sensor {
+    * id: int
+    * uuid: UUID
+    name: str
+    type: SensorType
+    ---
+    <<optional>> display_name
+}
+
+Sensor "0-N" }o--|| "1" SensorType
+
+entity MeasurementUnit{
+    id: int
+    name: str
+    --
+    <<optional>> display_name: str
+}
+
+note as measurement_unit_note
+    В каких единицах измерения сохраняются данные с датчика
+    (например, ватты/милливатты)
+end note
+MeasurementUnit .. measurement_unit_note
+
+enum TelemetryFormat <<enum>> {
+  CUSTOM
+  FLOAT
+  INT
+  TEXT
+}
+
+entity MeasurementProcess {
+    * id: int
+    name: str
+    measurement_unit_id: int
+    format: TelemetryFormat
+    --
+    <<optional>> frequency: float
+    <<optional>> display_name: str
+    <<optional>> started_at: datetime
+    <<optional>> stopped_at: datetime
+}
+
+note as telemetry_source_note
+    Источник телеметрических данных от же "серия данных".
+    На один датчик может приходиться несколько таких источников данных
+    (например, сохраняющих данные в разном формате).
+
+    Если нам пришло сообщение, что датчик переключили
+    на выдачу данных в другом формате
+    (например, датчик CO2 переключили с ppm на 1/mmol),
+    то старому источнику выставим поле <u>stopped_at</u>
+    и создадим новый источник по этому же датчику.
+
+    Если мы хотим изменить формат сохранения данных
+    (например, сохранять в виде произвольного JSONа, а не FLOATа),
+    то старому источнику выставим поле <u>stopped_at</u>
+    и создадим новый источник по этому же датчику.
+    end note
+
+telemetry_source_note -- MeasurementProcess
+
+
+MeasurementProcess }o-|| MeasurementUnit
+
+TelemetryFormat <-- MeasurementProcess: uses
+MeasurementProcess "0-N" }o--|| "1" Sensor
+
+
+entity "CustomTelemetrySample" as custom_telemetry_sample {
+    source_id: int
+    timestamp: datetime
+    <<optional>> value: JsonB
+}
+
+entity "FloatTelemetrySample" as float_telemetry_sample {
+    source_id: int
+    timestamp: datetime
+    <<optional>> value: float
+}
+
+entity "IntTelemetrySample" as int_telemetry_sample {
+    source_id: int
+    timestamp: datetime
+    <<optional>> value: int
+}
+
+entity "TextTelemetrySample" as text_telemetry_sample {
+    source_id: int
+    timestamp: datetime
+    <<optional>> value: text
+}
+
+entity "BoolTelemetrySample" as bool_telemetry_sample {
+    source_id: int
+    timestamp: datetime
+    <<optional>> value: bool
+}
+
+MeasurementProcess ||--o{ custom_telemetry_sample
+MeasurementProcess ||--o{ float_telemetry_sample
+MeasurementProcess ||--o{ int_telemetry_sample
+MeasurementProcess ||--o{ text_telemetry_sample
+MeasurementProcess ||--o{ bool_telemetry_sample
+
+note as telemetry_tables_note
+В этих таблицах будем хранить результаты измерений.
+
+Для ускорения выборки данных
+телеметрию простых типов будем хранить
+в отдельных таблицах.
+end note
+
+text_telemetry_sample .. telemetry_tables_note
+bool_telemetry_sample .. telemetry_tables_note
+custom_telemetry_sample .. telemetry_tables_note
+float_telemetry_sample .. telemetry_tables_note
+int_telemetry_sample .. telemetry_tables_note
+
+
+entity StatusEvent {
+* id: int
+timestamp: datetime
+status_change_type: StatusEventType
+---
+<<optional>> sensor_id: int
+<<optional>> sensor_uuid: int
+<<optional>> message: str
+<<optional>> data: JsonB
+<<optional>> telemetry_source_id
+}
+
+note as status_event_note
+Кроме замеров телеметрии
+мы будем регистрировать служебные события.
+
+Например:
+- появление/удаление датчика;
+- переключился формат данных с датчика;
+- не удаётся связаться с датчиком;
+- датчик сообщает об ошибке;
+- датчик выдаёт предупреждение  и сообщение,
+  например, о низком заряд батареи;
+- сохранение данных с датчика остановлено
+  (источнику данных выставлено поле <u>stopped_at</u>)
+- и прочие события.
+end note
+status_event_note .. StatusEvent
+
+StatusEvent "0-N" }o--o{ "0-N" Sensor
+StatusEvent "0-N" }o--o{ "0-N" MeasurementProcess
+
+enum StatusEventType <<enum>> {
+    OTHER
+    SENSOR_ADDED
+    SENSOR_REMOVED
+    SENSOR_FORMAT_CHANGED
+    SENSOR_FREQUENCY_CHANGED
+    SENSOR_SETTINGS_CHANGED
+    SENSOR_INFO
+    SENSOR_WARNING
+    SENSOR_ERROR
+    MEASUREMENT_STARTED
+    MEASUREMENT_STOPPED
+}
+
+StatusEventType <-- StatusEvent :imports
+
+@enduml

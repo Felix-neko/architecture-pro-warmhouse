@@ -1,0 +1,138 @@
+@startuml
+
+title RBAC-модель умного дома\n(ER-диаграмма)
+
+entity "User" as user {
+    * user_id: int
+    username: str
+    display_name: str
+    email: str
+    --
+    <<optional>> phone: str
+    <<optional>> full_name: str
+}
+
+note as user_note
+    - пользователь может относиться к нескольким домам
+    (например, сотрудник техподдержки или владелец нескольких домов);
+
+    - в одном доме может быть несколько пользователей
+    (например, владелец и сотрудник техподдержки,
+    который курирует этот дом)
+end note
+
+user - user_note
+
+entity "UserRoleGrant" as user_role_grant {
+    * id: int
+    <<unique>> user_id, role_id: (int, int)
+    --
+    <<optional>> expires_at: datetime
+    <<optional>> created_by_by_user_id: int
+    <<optional>> created_at: datetime
+}
+
+user "1" ||--|| "1" user_role_grant
+
+note as user_role_grant_note
+    Выдача ролей пользователям может быть временной!
+end note
+
+user_role_grant_note - user_role_grant
+
+
+entity "House" as house {
+    house_id: int
+    name: str
+    --
+    <<optional>> display_name: str
+    <<optional>> address
+}
+
+note as house_note
+    Один дом -- один контроллер умного дома.
+    Обычно один на квартиру.
+end note
+house_note - house
+
+user "1-N" }|--|{ "1-N" house
+
+entity "Role" as role {
+    * id: int
+    name: str
+    ---
+    <<optional>> description: str
+    <<optional>> expires_at: datetime
+}
+
+note as role_note
+    Примеры ролей: <<владелец дома 18>>, <<владелец дома 16>>,
+    <<арендатор дома 14>>, <<жилец дома 14>>,
+    <<сотрудник техподдержки>>.
+
+    Роли привязаны к конкретным пользователям.
+
+    Разрешения на эти роли добавляются отдельно,
+    через специальную ассоциативную таблицу.
+
+    Сами роли тоже могут иметь временный характер.
+
+end note
+role_note - role
+
+role "1" ||--|| "1" user_role_grant
+
+
+entity "Permission" as permission {
+    * id: int
+    name: str
+    --
+    <<optional>> house_id: int
+    <<optional>> house_item_uuid: uuid
+    <<optional>> description: str
+'    <<optional>> expires_at: datetime
+    <<optional>> display_name: str
+}
+
+house "0-1" |o--o{ "0-N" permission
+
+note as permission_note
+Разрешения привязаны к конкретным действиям
+с оборудованием и ПО в умном доме.
+
+- могут иметь глобальный характер
+(например, права на просмотр датчиков
+в любом доме для сотрудников техподдержки);
+
+- могут выставляться для конкретного дома
+(например, владелец дома имеет право
+управлять устройствами в своих домах);
+
+- могут выставляться для конкретных устройств
+(например, жильцы имеют право управлять электрощитком,
+но не имеют право настраивать настройки оповещения
+по пожарным датчикам).
+end note
+permission_note .. permission
+
+
+entity "RolePermissionGrant" as role_permission_grant {
+    * id: int
+    <<unique>> role_id, permission_id: (int, int)
+    ---
+    <<optional>> expires_at: datetime
+    <<optional>> created_by_by_user_id: int
+    <<optional>> created_at: datetime
+}
+
+note as role_permission_grant_note
+    Разрешения для каждой роли могут выдаваться
+    как постоянно, так и временно.
+end note
+role_permission_grant - role_permission_grant_note
+
+role_permission_grant "1" ||--|| "1" role
+permission "1" ||--|| "1" role_permission_grant
+
+
+@enduml

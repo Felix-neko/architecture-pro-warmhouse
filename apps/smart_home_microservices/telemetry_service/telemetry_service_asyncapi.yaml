@@ -1,0 +1,344 @@
+asyncapi: 3.0.0
+info:
+  title: "AsyncAPI-документация сервиса телеметрии"
+  version: 0.0.0
+  description: |
+    **NB: Здесь описаны только методы работы с WEbSocket-каналом и Kafka-тописками!**
+    
+    **REST API сервиса телеметрии -- смотри в отдельной доке по REST-методам**
+    
+
+#servers:
+#  production:
+#    host: localhost:8001
+#    protocol: ws
+#    description: WebSocket server for real-time telemetry data
+
+channels:
+  websocket_telemetry_samples:
+    address: /measurement_process/{meas_proc_id}/stream
+    title: Поток данных телеметрии
+#    summary: WebSocket endpoint for streaming telemetry samples
+#    description: |
+#      Provides real-time telemetry data for a specific measurement process.
+#      Clients can subscribe to receive updates as new samples are collected.
+    messages:
+      TelemetrySample:
+        $ref: '#/components/messages/TelemetrySample'
+      FloatTelemetrySample:
+        $ref: '#/components/messages/FloatTelemetrySample'
+      IntTelemetrySample:
+        $ref: '#/components/messages/IntTelemetrySample'
+      BoolTelemetrySample:
+        $ref: '#/components/messages/BoolTelemetrySample'
+      TextTelemetrySample:
+        $ref: '#/components/messages/TextTelemetrySample'
+      CustomTelemetrySample:
+        $ref: '#/components/messages/CustomTelemetrySample'
+
+  kafka_telemetry_status_events:
+    address: "{kafka_url}://telemetry_status_events"
+    title: Поток статусных событий
+#    summary: Kafka topic for measurement status events
+#    description: |
+#      Handles status updates for measurement processes, such as when measurements start or stop.
+#      The service subscribes to this topic to manage its internal state.
+    messages:
+      MeasurementStartedStatusEvent:
+        $ref: '#/components/messages/MeasurementStartedStatusEvent'
+      MeasurementStoppedStatusEvent:
+        $ref: '#/components/messages/MeasurementStoppedStatusEvent'
+
+  kafka_telemetry_samples:
+    address: "{kafka_url}://telemetry_samples__{sensor_uuid}__{internal_meas_proc_id}"
+    title: Поток измерений телеметрии с сервиса датчиков
+#    summary: Kafka-топик для измерений телеметрии в рамках процесса измерений на датчике
+#    description: |
+#      Receives telemetry samples from various sensors.
+#      The service subscribes to dynamic topics based on active measurement processes.
+    messages:
+      TelemetrySample:
+        $ref: '#/components/messages/TelemetrySample'
+      FloatTelemetrySample:
+        $ref: '#/components/messages/FloatTelemetrySample'
+      IntTelemetrySample:
+        $ref: '#/components/messages/IntTelemetrySample'
+      BoolTelemetrySample:
+        $ref: '#/components/messages/BoolTelemetrySample'
+      TextTelemetrySample:
+        $ref: '#/components/messages/TextTelemetrySample'
+      CustomTelemetrySample:
+        $ref: '#/components/messages/CustomTelemetrySample'
+
+operations:
+  # WebSocket operations
+  stream_telemetry_samples:
+    action: send
+    channel:
+      $ref: '#/channels/websocket_telemetry_samples'
+    summary: Раздача новых измерений телеметрии в реальном времени
+    description: |
+      Отдавать по вебсокету новые измерения для заданного процесса измерений.
+      Нужно для обновляемых виджетов в дэшбордах веб-интерфейса.
+    messages:
+      - $ref: '#/channels/websocket_telemetry_samples/messages/TelemetrySample'
+
+  # Kafka consumer operations
+  consume_status_events:
+    action: receive
+    channel:
+      $ref: '#/channels/kafka_telemetry_status_events'
+#    summary: Process measurement status events
+    description: |
+      Обработка обновлений статуса устройства, прилетающих из kafka-очереди telemetry_status_events.
+      Обработка зависит от типа события (например, подписаться на новый топик в Kafka,
+      когда начался процесс измерений на датчике).
+    messages:
+      - $ref: '#/channels/kafka_telemetry_status_events/messages/MeasurementStartedStatusEvent'
+      - $ref: '#/channels/kafka_telemetry_status_events/messages/MeasurementStoppedStatusEvent'
+
+  consume_telemetry_samples:
+    action: receive
+    channel:
+      $ref: '#/channels/kafka_telemetry_samples'
+    summary: Process telemetry samples
+    description: |
+      Обработка отдельных сообщений, извлечённых из Kafka-очереди с данными для заданного процесса измерений.
+      Процесс измерений определяем по имени топика.
+    messages:
+      - $ref: '#/channels/kafka_telemetry_samples/messages/TelemetrySample'
+      - $ref: '#/channels/kafka_telemetry_samples/messages/FloatTelemetrySample'
+      - $ref: '#/channels/kafka_telemetry_samples/messages/IntTelemetrySample'
+      - $ref: '#/channels/kafka_telemetry_samples/messages/BoolTelemetrySample'
+      - $ref: '#/channels/kafka_telemetry_samples/messages/TextTelemetrySample'
+      - $ref: '#/channels/kafka_telemetry_samples/messages/CustomTelemetrySample'
+
+
+components:
+  messages:
+    TelemetrySample:
+      name: TelemetrySample
+      title: Измерение телеметрии
+      summary: Базовый класс для отдельных измерений телеметрии в процессе измерений.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/TelemetrySampleInfo'
+
+    FloatTelemetrySample:
+      name: FloatTelemetrySample
+      title: Измерение с плавающей точкой
+      summary: Измерение телеметрии с вещественным числовым значением
+      contentType: "application/json"
+      payload:
+        $ref: '#/components/schemas/FloatTelemetrySampleInfo'
+
+    IntTelemetrySample:
+      name: IntTelemetrySample
+      title: Целочисленное измерение
+      summary: Измерение телеметрии с целочисленным значением
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/IntTelemetrySampleInfo'
+
+    BoolTelemetrySample:
+      name: BoolTelemetrySample
+      title: Булево измерение
+      summary: Измерение телеметрии с логическим значением
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/BoolTelemetrySampleInfo'
+
+    TextTelemetrySample:
+      name: TextTelemetrySample
+      title: Текстовое измерение
+      summary: Измерение телеметрии с текстовым значением
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/TextTelemetrySampleInfo'
+
+    CustomTelemetrySample:
+      name: CustomTelemetrySample
+      title: Пользовательское измерение
+      summary: Измерение телеметрии с произвольным JSON-значением
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/CustomTelemetrySampleInfo'
+
+########################
+# СТАТУСНЫЕ СОБЫТИЯ
+########################
+
+#    StatusEvent:
+#      name: StatusEvent
+#      title: Базовое статусное событие
+#      summary: Базовый класс для событий обновления статуса устройств
+#      contentType: application/json
+#      payload:
+#        $ref: '#/components/schemas/StatusEvent'
+
+    MeasurementStartedStatusEvent:
+      name: MeasurementStartedStatusEvent
+      title: Запуск измерения
+      summary: "Датчик начал измерение: нужно подписаться на kafka-топик, чтобы считывать данные"
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/MeasurementStartedStatusEvent'
+
+    MeasurementStoppedStatusEvent:
+      name: MeasurementStoppedStatusEvent
+      title: Остановка измерения
+      summary: Датчик закончил измерение, можно отписаться от kafka-топика
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/MeasurementStoppedStatusEvent'
+
+  schemas:
+    TelemetrySampleInfo:
+      type: object
+      description: Базовый класс для отдельных измерений телеметрии в процессе измерений.
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp of the measurement
+        value:
+          type: object
+          nullable: true
+          description: The measured value (type depends on the specific sample type)
+
+    FloatTelemetrySampleInfo:
+      allOf:
+        - $ref: '#/components/schemas/TelemetrySampleInfo'
+      type: object
+      properties:
+        value:
+          type: number
+          format: float
+          nullable: true
+
+    IntTelemetrySampleInfo:
+      allOf:
+        - $ref: '#/components/schemas/TelemetrySampleInfo'
+      type: object
+      properties:
+        value:
+          type: integer
+          nullable: true
+
+    BoolTelemetrySampleInfo:
+      allOf:
+        - $ref: '#/components/schemas/TelemetrySampleInfo'
+      type: object
+      properties:
+        value:
+          type: boolean
+          nullable: true
+
+    TextTelemetrySampleInfo:
+      allOf:
+        - $ref: '#/components/schemas/TelemetrySampleInfo'
+      type: object
+      properties:
+        value:
+          type: string
+          nullable: true
+
+    CustomTelemetrySampleInfo:
+      allOf:
+        - $ref: '#/components/schemas/TelemetrySampleInfo'
+      type: object
+      properties:
+        value:
+          type: object
+          nullable: true
+          description: Any JSON-serializable type or null
+
+    StatusEvent:
+      type: object
+      description: Базовый класс для событий обновления статуса устройств
+      properties:
+        event_class_name:
+          type: string
+          description: The class name of the event (used for deserialization)
+        timestamp:
+          type: string
+          format: date-time
+          description: When the event occurred
+
+    SensorStatusEvent:
+      allOf:
+        - $ref: '#/components/schemas/StatusEvent'
+      type: object
+      properties:
+        sensor_uuid:
+          type: string
+          format: uuid
+          description: UUID датчика, уникально в рамках нашего умного дома
+        sensor_name:
+          type: string
+          nullable: true
+          description: Мнемоническое имя для отображения датчика
+
+    MeasurementStartedStatusEvent:
+      allOf:
+        - $ref: '#/components/schemas/SensorStatusEvent'
+      type: object
+      description: "Датчик начал измерение: нужно подписаться на указанный kafka-топик, чтобы считывать данные"
+      properties:
+        kafka_topic_name:
+          type: string
+          description: Kafka-топик, на который надо подписаться, чтобы читать данные
+        sampling_format:
+          $ref: '#/components/schemas/TelemetrySampleFormat'
+          description: Формат данных телеметрии
+        sampling_interval:
+          type: number
+          format: float
+          nullable: true
+          description: Интервал сбора данных (секунды)
+
+    MeasurementStoppedStatusEvent:
+      allOf:
+        - $ref: '#/components/schemas/SensorStatusEvent'
+      type: object
+      description: Датчик закончил измерение, удалите kafka-топик, когда закончите его сгружать в БД
+      properties:
+        kafka_topic_name:
+          type: string
+          description: Kafka-топик, от которого надо будет отписаться, когда прочитаем данные
+
+    TelemetrySampleFormat:
+      type: string
+      enum: [CUSTOM, FLOAT_WITH_TIMESTAMP, FLOAT_BINARY, INT, BOOL, TEXT]
+      description: |
+        В каком формате заливать телеметрию в очередь.
+        NB: FLOAT_WITH_TIMESTAMP и FLOAT_BINARY потом будут конвертироваться в один и тот же класс FloatTelemetrySample
+      x-enum-descriptions:
+        CUSTOM: Данные произвольного JSON-формата
+        FLOAT_WITH_TIMESTAMP: timestamp + бинарная float-чиселка
+        FLOAT_BINARY: Только бинарные float-данные, timestamp проставляется средствами KAFKA
+        INT: Только бинарные int-данные, timestamp проставляется средствами kafka
+        BOOL: Только бинарные bool-данные, timestamp проставляется средствами kafka
+        TEXT: Только текстовые данные в UTF-8
+
+    MeasurementProcessInfo:
+      type: object
+      description: Информация о процессе измерения, запущенном на датчике
+      properties:
+        sensor_id:
+          type: integer
+          description: Идентификатор датчика, к которому относится процесс измерения
+        started_at:
+          type: string
+          format: date-time
+          description: Время запуска процесса измерения
+        stopped_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Время остановки процесса измерения (null, если процесс ещё выполняется)
+        sampling_interval:
+          type: number
+          format: float
+          nullable: true
+          description: Интервал между измерениями в секундах

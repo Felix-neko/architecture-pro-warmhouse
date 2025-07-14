@@ -1,0 +1,270 @@
+@startuml
+
+package fastapi <<third-party>> {
+    abstract class fastapi.APIRouter
+}
+
+fastapi.APIRouter --> pydantic.BaseModel: imports
+
+package generic_device_service <<shared>> {
+}
+
+package generic_device_service.router <<shared>> {
+    abstract class BaseDeviceRouter <<abstract>> {
+        + {abstract} <<GET>> <<async>> health_check() -> Optional[bool]
+        + {abstract} <<GET>> <<async>> get_devices(available_only: bool = True, active_only: bool = False) -> List[DeviceInfo]
+        + {abstract} <<POST>> <<async>> add_device(params: Dict[str, Any]) -> DeviceInfo
+        + {abstract} <<GET>> <<async>> get_device(device_id: int) -> DeviceInfo
+        + {abstract} <<PUT>> <<async>> set_device_active(device_id: int, is_active: bool) -> None
+        + {abstract} <<PUT>> <<async>> set_device_health_check_interval(device_id: int, interval: Optional[float]) -> None
+        + {abstract} <<DELETE>> <<async>> delete_device(device_id: int) -> None
+        + {abstract} <<GET>> <<async>> get_device_settings(device_id: int) -> DeviceSettingsInfo
+        + {abstract} <<PUT>> <<async>> update_device_settings(device_id: int, new_settings: DeviceSettingsInfo) -> None
+        + {abstract} <<PUT>> <<async>> update_device_settings_field(device_id: int, fld_name: str, fld_value: Any) -> None
+        + {abstract} <<GET>> <<async>> get_device_settings_schema(device_id: int) -> Dict[str, DeviceSettingsFieldInfo]
+    }
+
+    BaseDeviceRouter --> APIRouter: extends
+    BaseDeviceRouter --> generic_device_service.device_dto.DeviceInfo: imports
+
+    note as base_device_router_note
+        Абстрактный FastAPI-роутер для работы с устройствами.
+        Позволяет добавлять-удалять устройства
+        и читать-писать их настройки.
+    end note
+    BaseDeviceRouter . base_device_router_note
+
+    abstract class BaseSensorRouter {
+        + {abstract} <<GET>> <<async>> get_devices(
+            available_only: bool = True,
+            active_only: bool = False
+        ) -> List[Union[SensorInfo, DeviceInfo]]
+        --
+        + {abstract} <<GET>> <<async>> get_device(device_id: int) -> SensorInfo
+        + {abstract} <<POST>> <<async>> add_device(params: Dict[str, Any]) -> Union[SensorInfo, DeviceInfo]
+        + {abstract} <<GET>> <<async>> get_device_measurement_processes(
+            device_id: Optional[int],
+            active_only: bool = False
+        ) -> List[MeasurementProcessInfo]
+        + {abstract} <<GET>> <<async>> get_measurement_process(meas_proc_id: int) -> MeasurementProcessInfo
+        + {abstract} <<GET>> <<async>> measure_once(
+            device_id: int,
+            sample_format: TelemetrySampleFormat
+        ) -> TelemetrySample
+        + {abstract} <<POST>> <<async>> create_measurement_process(
+            device_id: int,
+            sample_format: Optional[TelemetrySampleFormat] = None,
+            sampling_interval: Optional[float] = None
+        ) -> MeasurementProcessInfo
+        + {abstract} <<PUT>> <<async>> stop_measurement_process(meas_proc_id: int) -> None
+    }
+    
+    BaseSensorRouter --> generic_device_service.device_dto.SensorInfo: imports
+    BaseSensorRouter --> BaseDeviceRouter : extends
+
+    note as base_sensor_router_note
+        Абстрактный FastAPI-роутер для работы с датчиками.
+        По сравнению с родителем:
+        - добавлены методов для управления измерениями;
+        - возвращается расширенная информация об устройствах-датчиках.
+    end note
+    base_sensor_router_note . BaseSensorRouter
+}
+
+
+
+class AcmeSensorRouter {
+
+}
+
+AcmeSensorRouter --> BaseSensorRouter : implements
+
+note as acme_sensor_router_note
+    FastAPI-роутер
+    для работы с датчиками фирмы ACME
+    (нескольких моделей).
+
+    Некоторые датчики умеют сами
+    отправлять измерения в MQTT-очередь.
+
+    Некотрые надо опрашивать раз в какое-то время.
+end note
+
+AcmeSensorRouter .. acme_sensor_router_note
+
+package pydantic <<third-party>> {
+    abstract class BaseModel
+}
+
+package generic_device_service.device_dto <<shared>> {
+    class DeviceSettingsFieldInfo {
+        +name: str
+        +data_type: SensorSettingsFieldDataType = DataType.JSON
+        +description: Optional[str] = None
+        +min_value: Optional[Union[float, int]] = None
+        +max_value: Optional[Union[float, int]] = None
+        +allowed_values: Optional[List[Any]] = None
+    }
+
+    DeviceSettingsFieldInfo --> pydantic.BaseModel: implements
+    BaseSensorRouter --> DeviceSettingsFieldInfo: uses
+    BaseSensorRouter --> DeviceSettingsInfo: uses
+
+    class DeviceInfo {
+        +device_id: int
+        +device_uuid: UUID
+        +name: str
+        +display_name: Optional[str]
+        +model_name: Optional[str]
+        +device_type: DeviceType
+        +url: Optional[str]
+        +min_health_check_interval: Optional[bool]
+        +last_health_check: Optional[datetime]
+        +is_active: Optional[bool]
+        +is_alive: bool
+    }
+
+    class SensorInfo {
+        +sensor_type: SensorType = SensorType.OTHER
+        +needs_polling: Optional[bool]
+        +min_sampling_interval: Optional[float]
+    }
+    
+    DeviceInfo <|-- SensorInfo : extends
+
+    BaseSensorRouter --> SensorInfo: uses
+
+    SensorInfo --> pydantic.BaseModel: implements
+
+    class DeviceSettingsInfo <<Extra.allow>> {
+    }
+
+    DeviceSettingsInfo --> pydantic.BaseModel: implements
+
+    class MeasurementProcessInfo {
+        +sensor_id: int
+        +sample_format: TelemetrySampleFormat
+        +started_at: datetime
+        +stopped_at: Optional[datetime]
+        +sampling_interval: Optional[float]
+    }
+    
+    MeasurementProcessInfo --> pydantic.BaseModel: implements
+    BaseSensorRouter --> MeasurementProcessInfo: uses
+}
+
+package telemetry_queue_repo <<shared>> {
+    class SensorQueueProcessor <<shared>> {
+        +__init__(self, telemetry_queue_url: str)
+        +<<async>> push_telemetry_sample(sample: TelemetrySampleInfo)
+        +<<async>> push_sensor_status_changes(status_changes)
+        + <<async>> get_queue_status() -> QueueStatus
+    }
+}
+
+package aiokafka <<third-party>>{
+    class Producer
+}
+
+SensorQueueProcessor --> aiokafka: uses
+
+note as sensor_queue_processor_note
+    Этот класс отвечает за запись данных
+    с датчиков в стандартную очередь телеметрии.
+
+    Здесь реализована основная логика работы с kafka
+    и основные методы для записи данных в очередь
+    (для измерений с датчиков и для записи изменения состояний).
+
+    Как опрашивать конкретные датчики --
+    -- реализуется в классах-наследниках.
+end note
+SensorQueueProcessor .. sensor_queue_processor_note
+
+
+class AcmeSensorSampleProcessor {
+    +add_sensor(
+        \tsensor_id,
+        \tformat: Optional,
+        \tsampling_frequency: Optional[float] = None,
+        \thealth_check_frequency: Optional[float] = None,
+        \t**kwargs
+    )
+    +__init__(self, telemetry_queue_url: str)
+    +remove_sensor(sensor_id)
+    +get_format(sensor_id, format) -> SensorSampleFormat
+    +set_format(sensor_id, format)
+    +get_sampling_frequency(sensor_id, frequency) -> Optional[float]
+    +set_sampling_frequency(sensor_id, frequency)
+    +get_health_check_frequency(sensor_id) -> Optional[float]
+    +set_health_check_frequency(sensor_id, frequency)
+    ---
+    + <property> sensor_ids -> List[str]
+}
+
+AcmeSensorSampleProcessor --> SensorQueueProcessor: implements
+
+note as acme_sensor_sample_processor_note
+    Этот класс отвечает за снятие данных
+    с IP-датчиков фирмы ACME (разных типов).
+
+    Поддерживает как опрос датчиков по REST API,
+    так и подписку на MQTT-очередь.
+
+    Прочитанные данные складываем в очередь телеметрии.
+
+    По необходимости -- также складываем
+    сообщения об ошибке (в отдельный топик):
+    - если опросить датчик не удалось;
+    - если датчик не прислал обновления в MQTT
+        в течение заданного времени;
+    - если не удалось сконвертировать данные;
+end note
+AcmeSensorSampleProcessor .. acme_sensor_sample_processor_note
+
+package gmqtt <<third-party>> {
+class gmqtt.Client
+}
+
+AcmeSensorSampleProcessor --> gmqtt: uses
+
+
+class AcmeSensorSettingsManager {
+    + <property> sensor_ids: List[str]
+
+    + get_sensor_settings_schema(sensor_id) -> Dict[str, DeviceSettingsFieldInfo]
+    + get_sensor_settings(sensor_id) -> DeviceSettingsInfo
+    + set_sensor_settings(sensor_id, settings)
+    + get_sensor_settings_element(sensor_id, key) -> Any
+    + set_sensor_settings_element(sensor_id, key, value)
+}
+
+note as acme_sensor_settings_manager_note
+    Этот класс читает и выставляет
+    настройки датчиков (по запросу).
+
+    Об изменениях в настройках пишем
+    в очередь телеметрии в служебный топик.
+end note
+AcmeSensorSettingsManager .. acme_sensor_settings_manager_note
+
+AcmeSensorSettingsManager --> SensorQueueProcessor
+
+AcmeSensorSampleProcessor --> AcmeSensorSettingsManager: uses
+AcmeSensorSettingsManager --> DeviceSettingsFieldInfo
+AcmeSensorSettingsManager --> DeviceSettingsInfo
+
+
+AcmeSensorRouter --> AcmeSensorSampleProcessor: uses
+AcmeSensorRouter --> AcmeSensorSettingsManager: uses
+
+package telemetry_dto <<shared>> {
+    abstract class TelemetrySampleInfo {
+        + timestamp: datetime
+    }
+}
+AcmeSensorSampleProcessor --> telemetry_dto: uses
+SensorQueueProcessor --> TelemetrySampleInfo: uses
+
+
+@enduml

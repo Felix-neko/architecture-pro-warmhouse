@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "old_system_sensor_service"
+version = "0.0.0"
+description = "Legacy system sensor service adapter"
+authors = [
+    {name = "Your Name", email = "your.email@example.com"},
+]
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "fastapi>=0.68.0",
+    "uvicorn>=0.15.0",
+    "pydantic>=2.0.0",
+    "aiohttp>=3.10.11",
+    "pydantic-settings>=2.8.1",
+#    "generic_device_services
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=6.0",
+    "pytest-asyncio>=0.15.0",
+    "httpx>=0.23.0",
+]
+
+
+[tool.setuptools]
+package-dir = { "" = "." }
+packages = ["old_system_sensor_service"]
+

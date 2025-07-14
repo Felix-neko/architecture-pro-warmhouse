@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "generic_device_services"
+version = "0.0.0"
+description = "Интерфейсные классы для сервисов устройств"
+authors = [
+    {name = "Your Name", email = "your.email@example.com"},
+]
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "pydantic>=2.0.0",
+    "typing-extensions>=4.0.0",
+    "fastapi >= 0.116.0",
+    "uvicorn"
+]
+
+[tool.setuptools]
+packages = ["generic_device_services"]
+
+[tool.setuptools.package-dir]
+"" = "."

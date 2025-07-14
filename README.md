@@ -8,147 +8,237 @@
 
 Чтобы составить документ с описанием текущей архитектуры приложения, можно часть информации взять из описания компании и условия задания. Это нормально.
 
-</aside
+</aside>
 
 ### 1. Описание функциональности монолитного приложения
 
 **Управление отоплением:**
 
-- Пользователи могут…
-- Система поддерживает…
-- …
+- Пользователи могут удалённо включать/выключать отопление в своих домах.
+  - [из общих соображений] Пользователь имеет возможность не просто включить-выключить отопление, а задать желаемую температуру, чтобы контроллер умного дома сам запрашивал температуру у датчиков и включал-выключал реле отопление в соответствии с ней.
+
 
 **Мониторинг температуры:**
 
-- Пользователи могут…
-- Система поддерживает…
-- …
+- Пользователи могут просматривать температуру в своих домах. 
+  - Система получает данные о температуре с датчиков, установленных в домах.
+  - Пользователи могут просматривать текущую температуру в своих домах через веб-интерфейс.
+
+Пользователи могут подключаться к системе извне, т.е. трафик как-то проксируется для доступа через отдельный сервер "Тёплого дома".
+
+
+Система поддерживает следующие методы работы с датчиками:
+- получить список датчиков;
+- получить информацию от датчика по ID;
+- создать датчик;
+- удалить датчик;
+- обновить все поля датчика;
+- обновить отдельные поля датчика.
+
 
 ### 2. Анализ архитектуры монолитного приложения
 
-Перечислите здесь основные особенности текущего приложения: какой язык программирования используется, какая база данных, как организовано взаимодействие между компонентами и так далее.
+- Язык программирования: Go
+- База данных: PostgreSQL
+- Архитектура: Монолитная, все компоненты системы (обработка запросов, бизнес-логика, работа с данными) находятся в рамках одного приложения.
+- Взаимодействие: Синхронное, запросы обрабатываются последовательно.
+  - Микросервисов и реактивного взаимодействия в системе не применяется.
+  - Всё управление идёт от сервера к датчику. Данные о температуре также получаются через запрос от сервера к датчику.
+- Масштабируемость: Ограничена, так как монолит сложно масштабировать по частям.
+- Развёртывание: 
+  - Обновление ПО на контроллере умного дома требует остановки всего приложения и выезда наладчика.
+  - Самостоятельно подключить свой датчик к системе пользователь не может, это тоже требует выезда наладчика.
+
+У приложения 100 веб-клиентов, к системе подключены 100 модулей управления отоплением.
 
 ### 3. Определение доменов и границы контекстов
 
-Опишите здесь домены, которые вы выделили.
+- Домен: управление отоплением
+  - Поддомен: мониторинг
+    - Контекст: пользователь просматривает температуру с датчиков в веб-интерфейсе
+    - Контекст: пользователь просматривает статус датчиков и реле
+    - Контекст: контроллер собирает данные с датчиков температуры.
+
+  - Поддомен: управление отоплением
+    - Контекст: пользователь выставляет желаемую температуру в веб-интерфейсе
+    - Контекст: контроллер включает/выключает реле отопления в зависимости от того, что показывает датчик, и что выставлено в параметре "целевая температура".
+  
+- Домен: обновление ПО и железа
+  - Поддомен: установка новых периферийных устройств
+    - Контекст: наладчик заводит в систему умного дома информацию о датчиках и реле.
+    - Контекст: наладчик устанавливает связь между реле и датчиками температуры.
+  - Поддомен: обновление ПО на контроллере умного дома
+
 
 ### **4. Проблемы монолитного решения**
 
-- …
-- …
-- …
+- Удалённое обновление ПО на контроллере будет затруднено (нет даже микросервиса, умеющего загружать разные версии ПО и останавливать/перезапускать основной сервис).
+- Труднее разделять разработку софта по отдельным подсистемам: каждому разработчику приходится вникать в контекст всего приложения.
+- Труднее тестировать отдельные компоненты по частям.
+- Труднее масштабировать приложение по частям (например, запустить несколько экземпляров нагруженных микросервисов).
+- При появлении нового типа периферии (например, датчиков пожарной сигнализации или камер видеонаблюдения)
+  потребуется полная остановка основного сервиса. 
 
-Если вы считаете, что текущее решение не вызывает проблем, аргументируйте свою позицию.
+#### Прочие проблемы
+- поддерживается только poll-модель работы с датчиками (т.е. когда контроллер умного дома обращается к датчикам через заданные интервалы времени).
+  Других моделей работы с датчиками (event-driven, PUB/SUB) не поддержано, что может быть критичным для некоторых типов датчиков (например, пожарных)
+- пользователь не может самостоятельно зарегистрировать в системе датчик/реле.
 
-### 5. Визуализация контекста системы — диаграмма С4
 
-Добавьте сюда диаграмму контекста в модели C4.
 
-Чтобы добавить ссылку в файл Readme.md, нужно использовать синтаксис Markdown. Это делают так:
+### 5. Визуализация контекста системы — диаграмма С4
 
-```markdown
-[Текст ссылки](URL)
-```
-
-Замените `Текст ссылки` текстом, который хотите использовать для ссылки. Вместо `URL` вставьте адрес, на который должна вести ссылка. Например:
-
-```markdown
-[Посетите Яндекс](https://ya.ru/)
-```
+[//]: # (![Context Diagram]&#40;diagrams/task1_context/context.png&#41;)
+![Diagram](https://www.plantuml.com/plantuml/png/ZLHVJzfG57_lfxZZ1KmKacLFlXabqymfcHYpfmQXaIPj8MtPz0racoOiCrdsj6Hko_O12D9OGV4hdFkDzZltjWoS94lyGq_F_Vqxvv9zOdjLfrMpH3vVcFwiFrifEHKlt7-vZS_cUiCBhUCmtsovZZ4zK0_3Ph1QAFYLj_aZEwot3bk1vLUvrmlprOPRQ386pgm4OSsn3-TWtKeGMlu_wCRssklT_R9PtYsP6xi7Exab8vkKrlRClHV5ylecQadfOAkyQMuNdnTtDb0qieA-KomxrASxcWZyYGJTywSHJMWeku86GhOfuY9Te_MK9dYEALuMrDUzg4KqaXrvoltNm1egl5XUv9dX4lX0fm7ToHuJ3F5mYpDuN4N3Yg1VT0_KFbh6N0T-96GNJNpYDZs1Nzt-0qrNh1kKE2O_C1UBYLYRVAV_Ksma3YSqbX-XZ3NqbTmnNfOiFsXukMeh21kkvI-B37tb5qhPQOQVfqSX9W9P1pHmevZHnf9k1191Ac1FjCkBp58ANgcvjiT8t-1kpD78Cp2CCaajjO0Qf3777BxiPlIK7cOurzGpZBqJB8UR2zoA7vfrs35vhVo6uwJ69cmAL334GcKx2HY5AnwuZhZFV1hCB1w7kQRbsyswvLSSisQziQjMO3xLmSn7VPFgwYQE48pI1rVAwnSENdkdM2JfwO7nYwviozwoNhKnxyXZcSuhynl79xPtP0QgnXm_PmR3kwbaZ5HKRJtx18gRBz4uOjPfy1o1tcAwHy22myQBStNelTWgAGaOncUrvB4Q_n1igLD06yOhovbPgOK3UMpZ7vfc8yp9aCaYBPh7RtJpzJo3u8wEM4r2MTOiVpViuKMHdy0oGx9GzF_UE_MjCNjDeiNBnhmB21yPCKzj6foyIEV6BfClbu6-9HGn-1y0)
 
 # Задание 2. Проектирование микросервисной архитектуры
 
-В этом задании вам нужно предоставить только диаграммы в модели C4. Мы не просим вас отдельно описывать получившиеся микросервисы и то, как вы определили взаимодействия между компонентами To-Be системы. Если вы правильно подготовите диаграммы C4, они и так это покажут.
+## Диаграмма контейнеров (Containers)
 
-**Диаграмма контейнеров (Containers)**
+![Diagram](https://www.plantuml.com/plantuml/png/jLhhRzlM5V-kl-9M7H0RaApLNRx4o834TfjiIUp4weAXAmHAecqXagYIT5AlAE376YT8cYn1WGB5cgneXtrLRCkcPLl-5yZ_QETn-RwKP3VBmx8koVC-ltFkkVoWqQurr-gwMBNjZdMbL3ArHrCh3NjrhRfcwMRDQDjwsvwg6QrIfwcrxRLMisZPzMQZMfhzGt4HbpwxVQlKqYnRDs6fCWjFQ8ssRavruDxSfGzy1bDJfU1VzD7qCxaFwleoV1Lpyt-vERjmPsaCuUorZbOtFmw5RC3LuZBSKRGwPiFMBL_6kluGhra1bqyMxfIltPzVMhWz_ruPqPhsIBUCbbwyd0iCuMjLwgpRgqQRTLPSDInxnTIjBvjPTvYwLhCJ5oFAb51qQyZrbb5jDFMArhIpETGRmoZeNzLMjVQAYaRqjhfcQrNDqgLxhzNhyqsz1HOjQoiJUNkrOTQB7Ssqr_C5yRlgogpHDCoh-G-NB-DVMZFCkcxAzJdDVF2fgT7DQ6EvVBsfrHxWMbDVqTlrilwLVJNl_kWEt1Ft37wUkZttrDlodWblqzjo1zu6BPwwZlUjSC_eg-CUkhlmkG-BMt3_CVm_oa_cSZcxOJTruVuC5pRfqedR5TusV9p2_NlkGC13oAfx1NzptAwx1oIxi89tkdraHWyUeIJ4RJUNMmGF6Uq9z5H1vDsti7hiFGSfuAhRPHcyv_aXrq2RK2PKJYMJ-5jxmjiKfDiXB0pS0xm77_EUUoy4oBaFomvP0nStu7E36T7Qoqcqmj8w17QhSjrOQzSrStrYsQJ4g5Sikc2XcB-oNO76T_3aVZ4kNdvIV9qJy2T8-Ob7UhMYTJhux6kuwLsHVE60xL7A7h9tUsY1FsaFjQMQsUZO1N4FGn-TpJbtDK-v03B6QNSWltIV-h-0u3ia34P40_L45YUYBkveTkEX7cKI9Wnm-WQYufxUbBuBjO1BuN9K09K5Qv04fjPi_5sF6V7dc4j1C8Yrnp9-CQXy5Ku4wNGCItqGFMrSRSrUhO0a07aw4yRGsqNou7HlctXWN3hUFq3xFgmzXaydPKcGSdcvKQkOnfhTQAzaqeHWypQy9_0VQMC-IOg2HVVP91dCLIVMEe0JUiMo3LDR8Sh_8MLFoKMEznGzXkgUKc0UIuyTeSVcZDe3tKHVsTgATJK2AUGeT4WwM1F6aOvBtvUjExgqT2cNSzz0cBDO-FC8Cmr36LO3s-G-FEUVN17K1IC2AMy7xD3pjWJQ4ud31wX-Gb05a4B1ielXAz09Pogem62QGPfu5JpW7dhFAB-HBWXwXaBY9KGDU0PuEWHRkmKq-ncv4H4p23zHb1BkCnH183r37w4W-vXHXBPuXuWQ0abA7Zw7CULow2leHfYq5N8518TuO-0Q-ERuluXzFX76rEkCuXpv7mk2g4Eg4Pj5WgOzif8Z9aW9XgmJbAk0ClT1W1VWgnxZD6i6UllvWKlqZ91bwunKGWTlmsTFK18Tu2-7L0QwL1H1XSbCwKbKpEmDTnzB3f11AQNsVi8dmqZWsldiDmKO6yKNPjO56mra9OzpmNBhN2ZHk2QISkz062YBR8yp4EefMN8Ws2ca30eDdwa0AGXs4dqdIv9c8EGnEY9f4LBcaD1jnpS29WLQ29Gl-gcyZG00RWRfe4O3XcBtSiAMXlADlF47bdU7sIKIECa8xSH1E231tx7fCAA411VMYK26dE78b63vkWd3SwnG900rPWTYayYX3Zss20RRlcyUIZtkoN1bdmh85bqv4X5LjqI8OvIZc0VEJ04OarEm2Evpa4gsSMc2RaOj0F3P8L_sWCfp9IynyMTj-O4ck1w9Urgrsh1lt-Ky0RU7qOiMIOE7Ae73d2Fmtc4gChm9lpR8HTsKKoU3fXMU-DPlMaMWnQ6uDxzK5jSMRyxu0Rw7HJcqQT3YKRZxyPC2mbs_cb7iRI5v845L1qGkSNj2zAFTrOcgkt8k8ifeeA7AwoTQ0dE6IZyLXnUbrwzS24_Eo25d35e-SCBlBwMvTibu4gePtnD1w2DsGfn2AjePjPBX_ChzFYE8ousMRjMqfZvtVHAJ1pSCFIR2LR4RSGI74jfUHGkz8mWyy1PKEXPqmqYdEpcmZPh9G3O-eOvAJoFt-tfr2Lj16v8jm5o7ykw4i8y1t8cnzrvoeurK8x4luoTZJm9RebJq94hJpSMYh4azkHLqBXnB8neZul42AXN0FqTPm7Wc34U_LuW4OpyjfGgdegXINbgSBCGhqqlf9BcPtfLu5FJ23lLQ0oetQDS-HKSa-I5IkB50BunuDgYccNdTHLHA0XBjXnLkLC8onjADMqi4xUfy2mG3hbr0_EDWexPDSNhilQ9OtSRwB6yXcDhcWXrkyBQfZKaqNqBsQOu4zfteVXsb-fn37jN6KEYvVQhCO9ClH53qtb6EgAIchTu6FN8AZsuN4kx0P2IwXB7TI9zCJS6URAYpS84xJfbaNV9lK0C4Tnt96SnKkjNR3ZhZI3ERsK5oJvFi8I-OTkvRYS83IOLm8hi5mmOCe_EamAdNvm73g9tQEPNPPNLIWvmfuVuKZ-4h3By9-w58D8cYcF9tHZoDEhcI4yNeZiB1O2jXIiQNCaZCqECoZFa-R1sVXe6B8F4jPT816IFSi8ZVqwXAJ5--F0wPCzaj-04NJAbYn3wUoRJ1BeUU7nwiENxjGwW-OxrHXE1hx96S-slObLA7bELbog94OuiDJMIuvZqh24RDKqeY2LLJEVSr65x61bOeAgAogUMTwoi95jJCncFBJy1uwqt9r-UH84gKhDa0XOCG9RW8TeVYh6o5qvlbRlP6TZATwPdtNYHnapkcSpOQoRvYWfkSqPqPw0LgKGJ0mW5jMGWciINO67ENNr1qEfdZ75MpFyNGvQX6PKvc5tSiWqLGi1unXa1bekmFWj2tvvX1IDt97YOyJyU4znt5_qdC5fY2Y5P9v4bDCjmU60Vxj-EiOKOtUvWne-IG0IGnJd9q7nc_4kI_5BCBqzomF57muwQBdHD74KYxxHWi-UqdsgKl9vvSI0YHOX9xtv4r-d94J_qisNiWTpgH1i8ljEG0udx0xP3t62HO_6pfHX74sEKg1xPKcdapR6gnuCVIGzgFG647WpVP4AjJBtOWSE66MAOuu-8mJFCXxNtqYZE9KT4WG7SkC8w_lIa5plU7I9lKSN4GqDulU3ZMMaLGCQj7vdZ4EVeUHtqu1IAauM4XtN0Q8NyawZGaBzQCLiUmTEpXzp1dWq2bADjaLr5POpdxoYEqg1EfvnbmG-SFLn0o3fYEUg362aQiAKsq4rhHbpWoKdgcmCTTsGKxe6EmxLE57c-zJuCsF7mIlqWKz9-dtEjo1QI-dhn5lV4BIKdY8AYyZrhX5TWnv2wLSdIuaJpiiLgQQLTMZPPUmHDbqsWsTTC_JR0IHocegJmq990wHZq8uvGdVC7PJ_pOfWKV5JoRYfpNZ75MWKSgYtGwNH2VQ9ODUIGFREBawSXcs77GQ00OazLSTQApKgbNaSCh6kTrHJGAWCmY7vWltRqLER8BJz7LXqDfdMmTpwPjSprBALKD3RLGsgbMinzcaXizDL3IjFIsPGJXK_ce86Q7K4sFoSM77ur1TlhyPATLP9l6IgEM9MpscOTQHgrchsbsNFbut9tlc65SDjE_bGsO9itdxfg-fa-qlhJjIjKq7l2R06_YqsZif104d_g7dbb72XY8j--MosD6E_CEG_vB_7uU_bd9G9FoCOM0t0uby5Fy-qpIaVbbz73UVyaac-at8s6vevkDpgfkQasBNxcW4Gps2iJ-oA_JYdrvVl9h9PYqEXLEAIJuVSHPwXwM074id5hLDHlAXwatjNMa_M-srdXdWkCo8U2gQIqm2V28GTFuaceD4mjUlM4tZ3Q7zu-g2SBOGXdJQfjYIpuk4Qi5gPP1Xaew5jKnQJLrxO6s4bAB4qiqoMFIh1j4wP_GgcnnYQUtD889TcACCIheySs6T3EW0bB_dIaviuZDHJYQ0hRSQOCqfnHTVNdq41qVz6Jj6fF_DBzKaVs40gf-If-yPI37ZN9vaJO64HQArprK3S1RUGvtGhLlOpGBs5O4Xn53DKhNyRpxYsfebIgrMIgDv35zSHvXDAbYXuCMgaSOC6ulDafB16v4QbKi937kTHpQa7PqF1ceaSQxuNmK2FNBkMQd4VffMoVX0Vi_tBu-2Szo8XFreQIIg7LXGeey-i5_SI5wp9GASzes9KxBCIuk8Q_XEnnH_7orKQ_hxI_gngDsyOz2NNbzgIjp8tTCcQKxBr_EyWqGRy3ZLIrwNpfrWbt7Vwd38xDmH2TiXInXxr4gpov6BAy04uNf8xI5OjmuBhsB23e429ExbYG6XgT9j1K8EWDa461VwSQjfQ5mgzf3_Y0FCmP8bxRQwM5cJx6HHAGQpasn8OO7wRbI8FFGW4ZjPF8ugO-U4h4ReoFEmPXTMIXvYik8g54dQWpEi_hD8KoLzHds1blnwMLo1BVjl-Gm7ZBBzsXJSP1-8VGrWNqm8_8FHSBXKFATcsXG89FWDTsHivZWoKAiZYEHo4kzluLCR6-GslufJ3pqZQLWuyV4qrr5WaCCScAK5VWpYdPYc_DBIlR857d0cyT8O6QIZJVwRvWgL3idzjfBhFlFbl0zrxlShMj_NVYiN2alB5Rc5kxVcPZCBTrOk5-vDV_f_9qv-FO_)
+Диаграмма контейнеров (примерная разбивка системы на микросервисы)
 
-Добавьте диаграмму.
+## Диаграммы компонент (Components)
+В рамках этой задачи я выбрал два микросервиса:
+- сервис работы с датчиками
+- сервис телеметрии.
 
-**Диаграмма компонентов (Components)**
+### Сервис работы с датчиками
+Классов сервисов работы с датчиками в системе может быть много, для каждого семейства датчиков может работать отдельный класс.
+Сервисы работы с датчиками выполняют следующие задачи:
+- взятие датчика на сопровождение / удаление датчика с сопровождения;
+- просмотр информации о датчиках;
+- чтение-запись настроек датчиков;
+- чтение данных с датчиков;
+- конвертация прочитанных данных в один из стандартных форматов телеметрии;
+- запись сконвертированных данных в очередь телеметрии (с открытием нового топика при начале измерений)
+- отправка сервисных сообщений в очередь: о начале-конце измерений и о других событиях.
 
-Добавьте диаграмму для каждого из выделенных микросервисов.
+![Sensor Service Components Diagram](https://www.plantuml.com/plantuml/png/fLVRRjj647tNLspK0h41otffNmAaW68xgL4bSMqPHO42n4fSIqGeaY5NTOKYG9tKo8DJk2doK1G5chO_83jMJT_aNrZ-KS-iH5gKI5beTJCvExUTEMUulcCv3RjZ2jQIqWlkbSi-trrkMhBLgNS2uJTSHmf7BZVSTjcpkICxRRiKIDEswkMLJqeR9Df-N2stUI253v6nuhOzro4R3xg5ktVY0ClBvUGpRZfjKoXKJ7FD5cr8QhovK0nQt1TcSObzN6-kkBRhtozMhMPBFlA5SBJOzKtXZvPMkVyiMR55KpXcJNmdxnVLUzLJf-f4zTL5T8ZVo-X0zPcwLWDr4ksfCDgBNWx5nSN976JByisInttPJINoqSwdzCx9WdUdadYhGdMaBl0xqD7ELSXqu47q0nAvmZkCzf6LlWsHy37b1o5fN-1xXkmArShNJxThnbVhjS-DwjgZjIUh2v1AIzg2gJzL7zR7j2E6Ynu28bXqW40ChdguVWtNvrYvLE4zaeMu_g1rB_7kCImES76jK-ghAqfG7HSAAq04jnpXB-oAki4zRuaLrI_GE2h11waXTFGZfHdj8T4RVQ-57iSMlyFR4GmkeZVmFz1jG7G8SFCF1SHrdpQQE30Uk1t7v7vtWNkMOVEkyE6fih7EgdHTN6JV5nXU2PeMTe1AqlNTZjJAMy89N9zjTO7MDdk8PJBVrCk8bRRczK3wl26DG5iPWRQwSLOPhG-TZfn07jijiGItwcTrH3tMzJr7ZQw0l3EgyGMQiHVjbQX3k3d6-XNr9KcEEWXegW-GKzzUZNe4qFm4qOdkK1Zt1s2Jl1dS7qPUpAa7xyWM4er3L73B7bkcQOjTc8qAiIdigG9EEDWEH313-xO2hhUz8S78oOj2WNmae9hg7NH8OGn5MIfPSC4aWo083DjjMeq4EGz6ObObSIw8HicRdRPdD68fGVYFoR61hk7sI1Evftb6R8uEeds21NrJt0jPgVGPW_PhpTO-aP0b9B-4yALcH3Y5pBYUGahBQGQtfwMnCyJVW4PEUWW0DpSDc2ngxlRVQGRt0DcBcAxbw9NUTIAOYhF4e7Aj8JncnwBNEbLzeoxJfLkSbLPs2VxE294gmLay-h8AKN1SAPXF3nZcxaoWx1xS_qKaraCQPKu6BLap-DJZAth9mFW3U7v3aVjO9lSqxV1tYSBY4JISpQVqC406Uhi4W51p-dWwjs67SZeogo8vn32vv0PlD3GtHgnOXOnLj8oLcRwh-Tm9TeH_6qMIqBxmNEh3UrIVjdAg7ru3ZUQpES08ssHqVgDZqQkuzToks8sMQ7TBDvCJ3xMucFkwd5V3baDmQo16dxVgNJ4Uct7OFC9ncbZ9_hxWEyzuILDtUfUPH8uV2QbjgT-czm9dFJWbM8Kwox4f0KXbEMVq8KhIu_G6-MS4qi7eW74OLsQwudCLm9IkqR1vWBbFKAazJJKYrRUDhea3djL8joetyObMPIJqOYxqfpkaViNchqV4EyNeqSISfyIZiJE3L3cWJnlcf9ckuzonvZ8RvZ6FHQfMUGQ5kspzoSFDobPjStkbjhsvnd3oNDlC6YUMi-DZMFgTXkpu8faewobnxX2ntLt35jyAEpukMFZNWuuFbkjGAxFEpS0vTJ7KO_TaUER4uh46UUPPbp0wSPJNE1kJJMBVv_Mw9TlFOVcC63_j0WVWQ5zdG30-d8UjSmHUhIzuRY2Rlcx5nl1owyjgLdmCiVy-1hDpcSstsxerWtXvPwHRMV1_OYO7ZEWGfnIDajveKfvdpPzPt1hhoYn6ZU46Qly2)
+Диаграмма компонентов для одного из сервисов работы с датчиками
 
-**Диаграмма кода (Code)**
+### Сервис работы с телеметрией
+Сервис работы с телеметрией выполняет следующие задачи:
+- чтение сообщений из очереди телеметрии (по сервисным событиям и по телеметрическим данным);
+- сохранение телеметрических данных в БД долговременного хранения;
+- выборка телеметрических данных из БД по запросу из веб-интерфейса;
+- предоставление обновляемых телеметрических данных через Websocket (для обновляемых виджетов веб-интерфейса и для сервисов бизнес-логики);
+![Telemetry Service Components Diagram](https://www.plantuml.com/plantuml/png/bLVTRzjK57_FNt4NaDP8JVC2BvC6wiSO4naRa0aX8KKtzarYpR6pwsj6X2PrArCtTNI0zZ2XIS0JhsdMh5cJfl_2zN_4ESUEwpXscZNDXu_Fn-zytkChbcFOlYbOMwckTwrIaVpXHijIRR_XUq8QhgE4epOCjrFfsjnHViSkUygqhKPb-vFoNIJTkrsjTBYdX0HIVTljT5q7PRh0MxXwPMPWOwCI_oT55sKAcwPvmnOT8DHuQwtejRaKPd6TVTneRRksAwyNgrQhhMvA8HmYkz8KChgrm-Nz-8ujMi8nQ-9dTRse_z5zVQAFzL2FWvVmEGaEz93fSptLny5ZFGeU1qz2Sh6Kng3QbZJBNIvLRmx8HyrFyPM3WXDp4u8OaRTiRjnV0FQ77kaZFORFAI4urID6OAR1Be0xWzSeU0f8wN84JWmGCn2HUmplzu2uKAXk_d3dNgt-_QtQb_NgZPitljvPAnMKfMp1zBzw2D83z9B5OXCWFW7oI8-kCLG84NeBrtsuCz5z1aYcyEESG0pr6KBIWqBXAjE_uys-FWtZTqgXxOEo5-iis4S-5ln6Ns0JP8Ddw0I6Uq5bS40w63b_1f_Fa0v03ncgN-JVotJWyy8sn9bRZf1h3qMZphlTTLRKVmBNKHaO43o48FWLmnKyXe1Ty7VRK7upYJTWwWW4ni4BX4CbGYR6SF4knAQ7S_9AOAaesQj3mtX-HyXwnpAa2ntqasK83zM-0jjx-cqOX0bydM8seUxYl40WW6D2HjzYG8x9zJxcrd6LOBPeAkOssMNc89TliWr0SdR1WpuLsqcm5nm6pmaH9Vq4oS4-X6eFWpyc7AXd3u6T4y-0uexfUHcXXIwQpB32c_rOq0E6rH0Q1GKJX07X7r6EiRJtgNRxLDfJ_JupeMmDRlQZs2DzTnqBPKWUW6_10POR5iWOsL1Rb2cqW5YFg28F04UVaZP2c4ZQHw-mlgcZg33siUjAHUYYEAtrBTTtJ2vxYVn68SQ4NjPHnHBxfS3WBqCXxrfrc_U414MRTs-nAlwE1KAXQ2QkDM6s8hzqVKK2Nm01XCg4VIyiQwYHV4dkg_Q57Dk4ItRRCarRF8J9YkKra_rMs0lsKbhkUSABh3qA1L4exhW5j14lCYNQR1dRvTsK9PqNQa-WK1pjBT-3-vx7gcxBCfO6_WA7wNUw02QwWSd_ApsLgBI8rC-hvYaKMLYznr2tvV9d32R_gr9cwXAs6_K7lg1WBBS_W4e_eYE3peyi3DZqPFGIcs3G5tKfk6avhSiCqxYFHqA-sOJxs1pf2ahdT5dq_uuc6muMC0Bz7asOAHpi8P2KEP3YNiyn4cMMRt29-wzmTs1qGk3a6boi4dX0mp00Q-_GTRmPMsLms0l9bGkbjh6Ionb9dzbE6O72WvFsMPHw7CE3XBEvRM5onUlSW7RoujxO0HhR91ghCBggIUvuJI5NRHJbefxQdN8ubY4fSEfW7E8bxcxFXCtFCkOuCki6rYJ5MzxrK7HvnNeFR0uPwwBvxxwfRjf6MtHwPSe_5ki97JXJKlm-Prolr19auIlUlCy_IFaw2xr8-pGtUJFTIGTNlmxx3mv0E55fgG0p2VJpcfAuFqXLeZMNrsLQQ-Oapssf3EaikwaHa9CN_Hec0MO4TxUJq1qSpDWtSsCgVoAjQZTPSClCqY9q7Yv23BlrOlf-S8JcVCq9rD84hGew8rOXx4UPwv7bD2MFfyWjlFAKz0tbIv4Q7B7qJYE1sdAwlWhTevqzU4hFDx3-fIOvd9ivxHNsP36rcE5a2JV1AJremAeslmBY9fx8KRWimbPCM-eXykB1Id22by5pMemN4GI7nLbZ9nuKIqiyDXk858AQwq_DwWZFuBROsIecJXuSy6DyF01Okw5Kj4NZ8qFmbDmzMteUPsDzL5XbSAGozL-qnmzd2z0PFGyCCniiJbAfiCgqQuIvdCvymeDsmKpKK0dL_mC0)
+Диаграмма компонентов для сервиса телеметрии
 
-Добавьте одну диаграмму или несколько.
+
+### Сервис обновлений
+
+Сервис обновления системы:
+- показывает, какие компоненты сейчас развёрнуты;
+- по имени компонента -- может выдать логи компонента для отладки;
+- показывает список доступных компонентов;
+- получив список компонентов для обновления, выполняет обновление.
+
+![Update Service Components Diagram](https://www.plantuml.com/plantuml/png/hLVRRjj647tNLspK0hLGstffNmBamRSc1fJ6jHKK1G8G5BcMY50aIr9DX2A0R-a5AHgaAD0-5BsWwBiYHurin_8lBF-ePuOK9OgKSa6ZME0ETtVEp9ovw9hb67R7bA8LXbvmlLhrzGUhJIjiTHgTGFg6wuJI2LSDjrtrRDq9Esrx9GXDssfKDpvQsI7HtTkrQbiFGkb3f6suRSzrw8o7lQKFheqLhAvMq__JH_DdIgKrqzooPHkIkjvSAWSjtPTcULcytsXkkBRhtoZNh6OhlEbBwR3OzKtf9wysTVz--iQMJUcOTVaml55MVwgUUgbUg86wY9xY-rNqH0s4kb8ZzI8wLCFeC3gAnUNAB8QmPVdcYgVxOJS3vBtzZ-ap1uNEc_VXnKIyRkl6_HomPsgedgiBV8yOmRaQ2WOpYWu0xXAVOVGOI7avX15zmWmXxRx0tnaGbqgrjI_ktArhds_NRscrhPjRdsukLKgX5TfIgB_K0AVxPAN0uUUuSuGb7QRRdugi1wuBkXyEEyMfddg5Jqy0s0WFLum9vmYXwfTA6p1GjnpfBpsG3QrZBOko-WaRdg_W2je5rT49mOmEONmPO2T7l1PYh-cUHwT-OsX31EW71ZY8ZOO0YtzZh6f0ngONQEjknp5rlxlKyKmzb1fu-vLbIAsHoEdUjxIUGEvqGo0J7ufFGEwrdUroHNnT4lXNe5dtBCtMkzB7EMmLDNfE3yI74ewFKU88Dj_bXRYjEtgJoIP84ruaIiMksq5caKJz3emnRFe-evqKf0j2VynkwcLCAh8JqHl2UtbKUYTiQMtBD6tv0Db6Ta0YRgUIQL1PwTHzkzBEs9U_DTdyg3JFbUFeZTsvtWcm8GX4pMrQnaBF6kEdCGLmF7qhzcBP9BJqj04N8Sa4y_I4ymr4Zxx1UWW75Z6-HvdOpn266JatqXCmIRGBaI2y1z0se3ifb8I1WiWvZmMzEAGSB8XgrgbJGKXL5xb6_O5RBgBZw5iGPn0T5JWX-d6-4oW9vyGGklKuWDD9k0cfM3CC2cPLyAhkwqwmB_s5OJMbPxjTIWxD35swA1M8pVeTOTXw4CY0d9Xs2ZZMH8EnZ1M0lm1SE2zwCawNUT7c549nZPwXNXsXE_InPW_3N1JjK6y6DyPAAekX-jARmReBIM25hj_DHdxlItlDDbgotVt_m1Q2SutxY8XXMrWHD5wB3Lvp8iTr-oNk6KBNY5lb6PEyJsKNd1V98Qw7iwGh85akTicf8euksfjpRD7cXK2onZEPtuZxv8qhRFoUa-qoUaBfJmd1VKsTKKfmlZxEMSObi33pVk5BwTHtKDn_r_mhqfShEecoOrIFyx6YN0sXHblOtAVTkY1W2TlHPqVHOsRc9OrOf2lsrGbqd0B4GKhXRCSLI_pS0vUFoMfGd07IgW8Ge5c9C8m7Z4mN9UBkRktLgxVgzPqzxAQTKtF5uisblIwcrxQszJ3D4LyshI2CgrPC-Dr4mZdoJsmXpL_iopWLAMKBVNZFMSAo9wYAauotZoUSL-I8U3YXxq5bUZYQb5JBsVVrj2bkqmfmEaROyULCzPpD-8aHMquJjv89sN6sc2HKPUAW47hcoXHNSod0KrDI8gUlhsIxn6O3wUdiMqtDR90ldwcVvt7aZEka6uHDN-vzLaFJmBSLodkEoEAVYSWRCcuyPFSGaUEuukRpucoUKO-cQJD9SXiiqJ3PUwx5HNOoVzJm1X68tvJZPBaYGD1tJiMUdKsJt7ILoP69Yd3yQu09mpRnM2VUYcJGZzyUqdTqEycNcGgPSaVzFPajipcTgNyC0UMKxrSlonFMnRrYeY8jnfCiO_gTKkwZtfudKqxIu63pik1ShLBQnZVbIj5CRolWCnvFEQY4SCY_fEAE2MzZcevlME581h9Sh6P-d7F35DIzGtJvPrnXmyiapQzneqZRnDEqJRoUzr3n7m00)
+Диаграмма компонентов для сервиса обновлений
+
+
+### И некоторые другие сервисы
+
+Для этих сервисов я диаграммок не составлял, но упомянуть о них стоит.
+
+#### Сервисы работы с исполнительными устройствами
+Сервисы работы с устройствами похожи на сервис работы с датчиками, но они не поддерживают серийные измерения,
+а поддерживают только чтение-запись настроек устройств. Команды на действия будем подавать через изменение настроек
+(например, открытие двери будет производиться при изменения поля `is_open` на `true`).
+
+### Сервисы бизнес-логики
+Сервисы бизнес-логики:
+- получают измерения с датчиков из очереди телеметрии / через веб-сокет от сервиса телеметрии (лучше сразу из очереди);
+- в зависимости от измерений с датчиков и своих настроек, формируют запросы к сервисам исполнительных устройств или к любым внешним сервисам.
+
+
+## Диаграммы кода
+
+![Sensor Service Class Diagram](https://www.plantuml.com/plantuml/png/jHhjRjl8yR-UOd_APqiFeAG1tBFJfZXVVB7pApM4ZRIs2LCaZwII2Ba0ZbqtTuXnkNy756Zp10KSr-uf_f1VWNoZpimkbqjoAKk-r80jSNU-TcPslkY0z_RuZc3RF8fvuB3xz-DT9-ot0Xx6emSFsEi6Wn_-F8f3tejPp-LHb06tbzSVFV67iGWRRngDoY9hjHwmODJdNkpqsd_aaLZp-yBjC6SG-64SDHg1OhuZF14wlMvVl71weXk943z1bcYNXw9FOhov3RmTIgu5B8lmACWAOJx94388ZO8_Y-nrjlu6OFwqkWdR01kDl1vysnNSZNUxlLtHssikC3Zguo1sV8-xpvxxlhirAvqT4Qk3H4t-WZikV-wAhk-vemv3GkmFR3CSYYK6-CwBqiv3xaQ2c7_ZHF4pUQn7thPVotxzyKQHF-_t5Vycs9mFeWvRSNhnCq1POilUQ8l8vvJdFrTJsSdfW-czU4Pwwq-Bz29DhoirKIAxn9n8xKZr49zlVK_SWODft2uG1m_ZRfMXskZafjzsVHvltSfwPVMRrStL0dUu6I8MKrGsZLwzyk5snB7ZxKJrLjXG4FDOOnZqkPQsZiSIyyHBlTcni9lRHdQ-tMr7kFqAzsstt_Nu0Fo1d1aVmLf3U0Q__X8wxKRW8GDkLQs-GyLJFqH9yniAKGq_AZ49GwSEf1qcNiN2wqVri3KXKJtsOx-TtpWZ02Czpuy5un5x3dGpV1bAkxYbrPFyadnAtwO7wNvoaboa1ybr-Zxv324eYa7I5YnFqaDOFa_tMNAMNAOV685-WlM3z3rBtpBObmGcoMVybfp2_bKoRkTCFiBURx0-GG90wm1fJO382Ip24g0Vjz93M3p97graSufZbhvBnh1wGhZ93JoybG-mcHwnv1gUD87a8fC7DCwq1YfQRzSgh2xfR0WlyaE5_lek-K7Z48SfoQ88M9SuD5IUGPvw4CUUIKdHLvQCIBsL9vLMwykaWPpH5yvNKyznXni_43mQXc8WlBWRX3uO8ohRmpYUJWTmpgsx6sCjPxekUSujlaNk9gxHGy4KTcQpyb9yu5nWbpgrO50kx4Ly483_RllXWCSTjWafS23YSBH1wmzfkQYN4iZCNjCB1UODcphkAgqsibNiBR0hPXSB2KW3tThIGQ4LJpsVRIfrJUm7SpY2Pl-6_kheLmXVi-MS_FxbEQUMN2N2vcclcgSYmlv_vIdCBl0TqWPa0qk60XX2EONKSGw_u_HdIc-OGCuervmdb_1xrSaZPY6F8HQm0igGuGXfafngQGwJ6qN-Kf7_09aAqYA2xsTBADOza_wfJ9s8clu4w40Qv9IdWoy_0f94ndn75A_Jly6Xzu7IIVftoGP4jERJzAXLr4fwPCcIDRQ1P5asEVPpZOPCZikzGJavudPbEVEImY9vbakE3OwIEGa7t3ediNa2RSpi3GpqXigy0e3bhzTM2Rk9pW2LnGNLBiTOHs1nSKNcbVxmUQ4jVJdv9pnT80lKF_ZdUP7B69q0hVqp541OhI1NYOausZrK0LHr3l06jlRTvcOBuD-fZRFqkC8-OmukWKw8zYVYw2raTgglaDjlI98KW0SyRw7eZBmD_3pzq6veHwWQhjskDOXkwhD1mMmJ23rDc64ka0Uawcn0KgifqSqYJVSH-H9q8hmRZm9ObwSj45Y1tKtOX82UVMt_PUFnjmQ-Y7gXG-7VI0F0ef845WUEbxKk6b2ME9Grg1NTig3nLtT1uwxhlnIgMOeCNAfAiCOguAWUfaw9KwP0sRMjpGarD3ji2ENNh6W6HiNcPJCNytzbVJZ4dQTF7wrCzmmd2bm-KirdmRI6SL0Dqq4KL-bZKc3qennW6BhrzC5dh7ECJksa2XGJ5t0CKEoxOsSW371Zu5974K5SFP8ntKLQ8QyGJ2keE67UBNMLyeVsuyq_hpunp2147wePtyNwgbuWrChjLLYv_Z6SvVuFhPOfTgbAiVgZMGVbVcWGcU6Er8OhATNzrLSG7zjqTNLqizxCEp2qrvyMYrNkpLmL_c8KGyo7m8EWcR-PktuGgDrfRZc_UMlEztiYbvsaCh-Hi-9C8ztlXs8ekg48QjEKPF8TmYcQlcNSJJhemk6TkDjjHiBTNgfmeRW1uM8XnyZxXM0OxNPp36d2floec92cUBLKb5k0NUDX1265UplGDXSV3UnIyofbbT1on4vdtw05PKD3bTpnz_Zs7YzN4AOAGM_zOK-MdrPrekqoGjbbpOfATHefLf2Xv8Lbyc-gvmwmJBgaclkjhDTEeG9x9ojo1fNQ2VsHWoYitd2MTOqDGNf4TCer9_K6funASOJ4lNrgR0wXyIXMU2nlFgW1s0SAuwpi-nKhKU99u2S0XvNZXEPmroZN18hDQrfGJS8bFFn7LhwLmfYKr513DXDLrfIwkS5EHvRM-RaHmpWt5PU5WwYQMk6L2bpevwnA6jiPAMpThNt0cdf2-fn08qK4TMd-3onnxOKmiRc6fdAVZdPjAzpLQ0oIXAbZAEUpTaoMqSe_P6D50qWosXa9ezehNL5RFHMAwcaEMMskv8ND2SXxiOW3DKae7uNyDTO1VSbOB8y-p3qTTRT30G9vlL7TRCF4AXGeSs5-zTNUInxko3WWOyXyKMyHehF_8cjAclh0QXS3a3nllhN4v8enkwmaiiLe6c9Ekwgl0dYsM7opQAGluZChaPojNU76wQVokmsxmhEbhWE4Tl3FG610PXeyqgDEAbqBFN_PM_CwgdWFRk__LGtokm8snZPijk5odbi3zgFrLYKSbQO4h2aRQHNnYDWD0khGyv5c1MSKv_uhuuuKuSACIHDhw0DAxCdgnYQ-DfBtXBB51GN56o8iu-55UaZz_hJvm4TYerwRoACMpWqFDEcunB41F9AWoLKrYazDHpX9evWyIJwbHt9sXlCI2inZ2g5q1D25dPzIFc0YXP_ouGTEiO0EnkvFW7OEYUHKMfP6CUcn6WfIVhf19Ix8KLsBqGpdaX9QfcrKWyhJcSv9RfQzXoAHZ-zLA5GGYEAOjW6Dv5Gvyx8ykSa7ZgUaHDGg9OTpcToKBIWzvuCO2LELf2ejKwEgQt9sB2V6DF7JkSumzhqy5TLVqDAGntxhybdDuFiujinwPDAYtVRNhWEt-lQmGD1PiLPDUwhlMUCUCDPfpnwGEaOuKd0KhDMPIkzzYr5pnbU-LefbKlONyulqFmgrg4iiMrkO8hkGmT94snCoponxete-DOXBZCP42sWcQ_JDq0TI_zEZhuuv5FR6wDVlLTrxchqHbiYLbxRLcDYae2XBGNcJqqCTQ_-58Q9I6AfAj4py1DSnVFwemyvieKxMxI3v8GOnlEsbkDEsNgsIovQlbbMbK_3hSkTj5wkMehfiqpdMt8Avi0YXvbL0hUmLwUn8rYDP6dFhuBWqZxPqnOLN_3YYW4Ps49G66zZ0JhT1GGubP6tdQX4ZEzV_0000)
+Диаграмма классов для сервиса работы с датчиками фирмы ACME
+
+![Telemetry Service Class Diagram](https://www.plantuml.com/plantuml/png/dLTRJnj757xthvYGXpegjbHLue4If5nmL96K52Bn45MhmJk65NjnTcP9h0g9YofQGODQzQ7gMtz09I1GQ8ZDNvZzHptdxCMxzYouHM8lC-VodNE-SsPzpnOTnnVivTBAA-l9qlEbPNQ_rLgOMPYftKktdYtaEmiphIzRhNndTQMm0KgrMeslIHNojcAFkHIlX2iyeSBUSX0f4RAvkMnxVfvzNsFmzpaiWWDuXqtPyzlmj26ugpQizePeRzOViCOyM-eg9_2v-tej2DplIB7HQ5GQM1VAyWINKGZkVMLrmw0jf1IoBeKlWz1oRFdmcy0NqonTYA9yYQpY7y1qjeGL-6xlOOkx4gGznxUaug6oL6R0u-_AImJukIFLwnT322yJ15_xdU1_mw_Z6hq0_bdc-8fScRtSQbnoh-iAWq78HpawuTlZSULbNI4xmw3Gt-fAoHsKMt2lsYDPNHLhAq5xKznYkW4s5n-r5X-Lh6UfmGgeI5fY2x9Gf-iiMw6r1NmXBnZ4HBR8TLq5NQTj-TmJinW5v28nQu1ODd-VMI5tfB3yG5aEoc1jX5r_KDk63Xbj2b0rz0ea9zEKXQxgzcpkAwVTH9KNWIrSaqKmgR8rorP1qymHyX64wA3MvUrDlYxAUf0TkS53OUVjcWDfkrnAKovImOGEol44bCRhpZARAu6lj0jvm9j97S6FHubSsH2XGrXHDV7VSWEk35QA6ERcWdHwG1HRt8sWdXtKIv7WjSeEeJ6i5-4CqJo6uNHNHaneSAWLqr9bPm8m1JHF8ga2psHdRcxX7LInoLqtU4kbBQIYMks_9SDCkL8kyc5Caw2uGRQjJX1wVBpZMhHS5CUP9MmBPKiqCwGSWkjs9vL5Tuw_RW4w4KAnoiIXMqMOTx9uszosnlH6S791QKTQxjj8HE9fv7L1DJrBBK3gACkgssjME_3nh8Av1IyIpbAFJnUw-mrgMr7e9aFfTZ05LnaQc6s2SJbcqIOfY_A4gKCv0gV_rDVnVloZFj4NyHxJW_W07dRqXJwFZrYy1m_NyFy9Ts7vIb-biphUHKNzDsoUwdvygFz1wO6-0PcFO4UVqaNtuNf6DlgeZNg3U1T5usDSYe-PFjSdOFq0DL7wgyn5RW_qHeMQ6Vn1_0C0Em4CnnJ2EERuFTDdJF-YVqkLVWSGDs3aEZxIbn04oB95tjc4KWITZXJgi_YGPMR1uIS6jnEcJs5b0EufGSqQdCAC4Zb9jbcpQQnShO92ouBRHA4XVOmqWUP8ZahMSuGBdmMP4AlB80hR0Xev_tw0hffcIV_IuVXC-2BaAWZD9_ps6F-clfWY3avvtEzD6I6dLAnYOaX29YR-1PczfBhTG6MEunqimiz4WWzwm63t6YYm2xKxQIJiGzecvGOM8R507sdo7kg-YqjGBf3Qeu8De8mcFYTVbaIg3wYDjEspb1_xGBYqCoxXuOOixgPq682vZmWJxbVw0aY6pK0ua2Dx-YGndGYFzWBYCy1fraRwCWtmA85qZWq1mHs28G96WIOk4E4vKNQq7zCOpoX3PyZh-ASihXlCRHz1nFiC4mmAVIB_8BS4cK7C5wI9hRkJTj8VmwoD19_0eVGKeKwNYiAW-Kx1Noh0niiwR39ZUq1JJKGme_BjazquqSU-uV9ZOBI9dwuDEvZTSG8KknY20CkvZwecfby0e-rS_JDWst2IZ6CTZJoFOS9CbUIDQHgV2f24wf7mAv0dQSHaje_J4wuNB3uWklIJBhpIbpJiRoFz6HW-HHxJsMBkGyDuhm1RckrP4enVx_ADoy545x-uYjyQ5PdBnIVdvAYA4KPwVYZ7bUKV4qLC9H_pPcqZhZoKExJ-1G00)
+Диаграмма классов для сервиса работы с телеметрией
 
 # Задание 3. Разработка ER-диаграммы
 
-Добавьте сюда ER-диаграмму. Она должна отражать ключевые сущности системы, их атрибуты и тип связей между ними.
+![Telemetry ER Diagram](https://www.plantuml.com/plantuml/png/rLZRRjj647tdLopq50UHtVHHDGmeDfqug2LNedi12WYCpQG2H54LgI167C2NkaxWD4Q25YWA10Nw1RHYHOfjAR-m_AFEpAx49RLKamS_r80iSNPsTYvdvyAW7ZGSnl_XFNu9dolUYmwYFJw8JdzitZ0hUQ2C-3ckHY_d3CDf1lLWXrMTfk-rhPsMmvuQ3FvkrhSBhDuCwA5fkqw1-K6RdlBvF7qlBdgjeEurxSRI4jkk-ws6lLDBiYPP77-hNQTdmV7CC9fUu33RPpwTNmj0WHhI331Wm3yoq3G4_O_XuOA7x0OVyf1_H7l8ihrR2GwsNFuoHU6ZQ9ztWVK5c3n4Dp0-09PeRtxEu7-Z9DmmucSWk4ik0oua3e7OZKwYewGIG9Hhy7d7HomwG4rv20V3AZoDGAXSsWEXGn3PmotmxomwWID6HZxFo0fG3ZSaD8XECMmCZe6b4AYNeFKnluWE6KLk23zm6vr2r3FOq0UpU1-TGWSAIu7j28L59sG3K8Teq3n4VPkHczD-P_Fp2XPIy1X3WwdOkCaw7NpUt5nRqO059HTKaP-488I6F3FtHRwKOy-yV7vtb-LkvtJghJkstsaxBZnkDkk1K7CMW3y5lmewtLX-hGC728YY3Fu6enx2Pu10wO6R1-JyNm4oHvEOGApYc43KZmGoejFe5GHo7q4vYG_W9DfF0P_Eqe6_Irm7qSa2a0O05G1BJ9oB0vro4SPPRnLiwRZCSXgm4BHtLhssQmVWAoI3dz2tovjLgxmEFrQ_BXSj-5uhuN_B_Dv2hqq7PQFjRJc-hyLFCZHJEgci3qcNGbgvp9W-R3i_Tvpcraw1FMnual5pivOVsEt0sQxXmTjsu0Hrrz5nUQrMcaj1K31MkUPxdVQMeo3eJv438DH3obZma4xTn_1hVumnvI9ZTZjW_3r09WSCFP7d4oovUN7AMyYUb3u0dgaCYGNXFPubSX8S8XY1uwN0vb2UFyAYWTyYDKc51aa3H8PKLCW2xzHDU94o43DcLoJHFgNSAnRzGkdr2lNdlRbvGrZt1yYw54axnDmfx7YEkPQEmUmwhW2y1qSVZzEkueUFyfvUW9MlY0WYXVmXUW-A0MqunfoRY4AN2afqY4b_IidCkvigN1aAO39ejLoXm-q5r_KQSxT89fb0lW-f5boXNgbW80cB6751OXYGTp2GuDp5pbACsyM5pf8mTY1SrYSRpyKMMGpvXwaJI1oBVaEQK07Xg1eN7Kw52IiImengvvLQkWXr2GycS18NySy760h6KA4Npb57gi1qTbT2UoWBz_rgkKGLFHI5cn8T3_-7ZaV1ao9WQDCGv4vDiZOCGvF1eGv36KuL4yEOAXTQaGNMyHrV9pQZo1kJOf9Rxe37tCavLTjjDPmSfjOjMgaffj6QB3RIJhMCO6w6hEwsPYNqntQZ0oNXlkyrxoX5BRUAXKId1bMOQz92L2z5YxMcLWUGVKqQu1xbVCjvebKW0FerQO2YLHNkU5v3fy83e5-J2YWQLT00U7Std_UUPc5nnWuzR6PiqCLu1his8ZFujUxJzJ61_Q3X-79OUoFo49PlPMYHFV0P5CPpccacMLncUInsVLY5r4l9z007bLJBp3z0zU2_urp4eaFHXYZjD2N7Co9TY54kBWkQJkgLCdTHxPRJ6_KiMOeQk8YrIexDikodBLN6AaD_4Q3frZjG3zfCzgoKbxaX8pbbyciJIIPtF2O6Tj3npSVm23SkxlDrbymdtjhMJtRpaLEJOsAyd-Oxd1EJRROOLyToTMjY6frQ1GLy-v5iyfCpW1tOuqIVM9WgblNjn2iBOO23sifhy9Te1x0Czx4H9HIFn2IVGY9qbc8kLq27g7udoZo1bVRIjNY9dS4bS4A91yYDfqHgQq_euftYBNcRx80AHfwQXEXKURFHMw03mvYGcZM_4hkcMb4Q1HADMQ89dffPIGusJ-AywBMSTF5z36ZK5uP9KleTonNjLZjafOqFnR023tWjdyFo6MpgJMsPTEolnxCDpEUWZVZrdjmkF33flP9pWY5Q_rJVFcAqt1UAKgYX-J_bv_Wc9fHTOOyFK9_ftbNwEzjlJBuL2kLR9X6daO4jhgR9J0uYIiSfzyteEkVGOODnHZmctTAWYjyKfU5EhuhY2siOwksF6pgeAU91jdJ_mQLhHEcDH2et9Dz8C5QsxfaL-bKrIzLofLPSMJ5NL4B5N2z_coIjbYlhHQksVAzOkfjQgPZVR9gbvHzqYrNJijPATwkwjRNIQbbz_gvOAG6lIZ8hbR9GTTqiLZT1BxDarQfMiM99MKbwUMC3wCyI3XOkW2vRTMUXxhQyTk0R_m80)
+ER-диаграмма для телеметрических данных
+
+![RBAC Model ER Diagram](https://www.plantuml.com/plantuml/png/nLVRQYD747sVh-Ze9LRGY2mi8JX6a8IGF8LWo5j0AAj9Ta2tI2E8iGsI5djtyQuD-O2z_C7iMB8bMPTVwFwZdAgU-xGsTl8GixRKj-ggKwTErtgkrtB4uJTVVslBbTp8gPp9E_LAg6SOhZ5nBJS2iniC_LywUzyTsXZDfI-lrGX_LpHVjYoduxdUaIZzF73w9T4OY26-Y6DBuESp7jJTvhvmEnvFqKIdqNRsnS3hyqpJ7VHQZQDwTjPfDznMChHj_ZWuwFOyjzjfj6erqNlQxQHEPDP-6xPQAOkdbjNfUaxaNfq6sgwGMuI8mEKjFWFfgqa81ADo8sTg8kG6iy14ZULSJTGhDLPNGYu5vcQOMuOMbe1d5MCcLtp37ZRvSWlCi8Zjeuh04HXK8q0znUeSbkXMTSQ-J2aLs7v3zWHMx-WZm8UlauJLSyFLwYow6d6KlxAY-0B1HYcbiNEpJ7GVr0L5LRIvsO4EVXUxWYjwEdz8m1MsItTZnmP7BkG2G_MCxc0BvB9wpQkJC9uoMDWKd5IBwMUdqfnXw66tvNpVRtIycAhrFgRglzDSpDeqOGyEXXttZw43KeLahWW-GflsiAj2MyixMUhysNFxpg3UyFP5i-4vdjjsYhkUz1siDUk_7j6_GjKOzsOideQHbnwLnCc9RP-SyDTSXBaoI1QIYf1_0V8fClrS-WAWRtIwTzN95P7AnAK0PsT42YISkBVu99Ua_ErHqjBUnhdxeOirpjbJ-XPcYhzdWCgAY2aVPhd9R6aqcyZO8AqQ-gO4f3UiXUkGVxX85nbFKVsiYUwC7HN1oAogrSWMWVQSbbDMK5XaYf0U0MlcVZM1C748kF4W9e3zOqcS4WMEmq6u7659DS1G4j96pkTHDC7e39xqNHxlGD58_1IadES4qRU9YAYB5F7sORMeAI62uj6NjLhbupk-m8xGEyAI2Jbb_a9UKliUXvPkM7ApDXudDXwWPRLQLQkmVCVHGCQrL0OecrkukqQaz8mmOo1o8weXcgMYsbblYL5VtlAP5npKd1ubeWshupp2SAxZ-83T0HbGbt2V7p2IsF3P9_Bf24746QDqIxAz9I3urUTDaE5B0L_6Z08lq5Kmh9Smy74JBbNdH5Vjw7jk5r8E4VOa65evhd5q8iBa5xM3Nm30wtFRiMImHrKhAOMOIAW4-cxnp3ygOLmFFpdzjZiOWBTS5RruUA_QA1A_g4gcPSzfruT3saL_xr5Wd_xBfwKeU2X2hQAbpsq2gMlRtMCQG2kIw9DAJUPqlPgPzm1g4-aM8D44n9aJfIqr5ipHJLXOJ7akhnaT08VVoZVKoyH2clGou8AzYqdNu9lclkQlYKkMgOlPyew0H9YLcCRK_wrqzGij8IYMEOSOMDHdtQbBYY7JPqsfvWmT41tQgHpKlcLZ2l14ZBcyT177NQYsdySvzz9OzshK8hdJU_Hx7k6miU1wD0WTG3B89oxhA9swqYcqCPrAjwM-EllFSM7tcU5QOtmiv31tJbJKqvUPa8GffDVyx2orVVMI6dvsObMnz0kzfgmQpP4FeMS-Yw8VjTL-uh3kwZUSym0sNaOLPD6KblqR9cXSB0dHW6uvrGJa2bDKgvdwpRpuYSeb_I_BOSh8lRhWiFcjf6N1s0l_hyrmfil8XvXgEunI5dFFHog8l8lKOvebBwKdoZGHD_hlYq_YjoN9u4RZIdV15Vr2BbdHSXroDVUY5V9YVooO7MToZo0_Zwa7ph1Si65PVmC0)
+ER-диаграмма для RBAC-модели доступа к ресурсам умного дома.
+
 
 # Задание 4. Создание и документирование API
 
 ### 1. Тип API
 
-Укажите, какой тип API вы будете использовать для взаимодействия микросервисов. Объясните своё решение.
+В этом проекте предполагается использовать как обычное HTTP REST API (для большинства запросов),
+так и вебсокеты (для обновляемых виджетов на дэшбордах фронтенда) + kafka-топики (для отправки телеметрии с сервисов датчиков).
 
 ### 2. Документация API
 
-Здесь приложите ссылки на документацию API для микросервисов, которые вы спроектировали в первой части проектной работы. Для документирования используйте Swagger/OpenAPI или AsyncAPI.
+Я проектировал API для двух связанных сервисов:
+- сервис работы с датчиками;
+- сервис работы с телеметрией
+
+Оба этих сервиса используют не только HTTP REST API:
+- сервис работы с телеметрией также использует kafka-топики и вебсокеты, 
+- сервис работы с датчиками также использует kafka-топики 
+
+Хинт: если сервис работы с датчиками будет не абстрактным, как у меня, а заточенным под конкретное семейство датчиков,
+то он может использовать ещё и MQTT или другие очереди, и формат этих сообщений тоже надо будет документировать,
+но это, наведеюсь, не в этот раз = )
+
+#### Документация API для абстрактного сервиса работы с телеметрией
+- [OpenAPI для HTTP REST API](apps/smart_home_microservices/telemetry_service/telemetry_service_openapi.json): сгенерировал стандартными средствами FastAPI
+- [AsyncAPI для остальных коммуникаций (kafka-топики, вебсокеты)](apps/smart_home_microservices/telemetry_service/telemetry_service_asyncapi.yaml): к сожалению, пришлось собирать вручную, хотя и с использованием LLM.
+
+#### Документация API для абстрактного сервиса работы с датчиками
+- [OpenAPI для HTTP REST API](apps/smart_home_microservices/generic_device_services/abstract_sensor_service_openapi.json) (получилось достаточно развесистое)
+- [AsyncAPI для остальных коммуникаций](apps/smart_home_microservices/generic_device_services/abstract_sensor_service_asyncapi.yaml) (не сильно отличается от предыдущего AsyncAPI, но пусть будет = )
 
 # Задание 5. Работа с docker и docker-compose
 
-Перейдите в apps.
+Сервис `temperature-api` реализовал в виде FastAPi-приложения, оно находится в директории [`apps/smart_home/temperature_api/temperature_api/`](apps/smart_home/temperature_api/), `Dockerfile` для него там же.
 
-Там находится приложение-монолит для работы с датчиками температуры. В README.md описано как запустить решение.
-
-Вам нужно:
-
-1) сделать простое приложение temperature-api на любом удобном для вас языке программирования, которое при запросе /temperature?location= будет отдавать рандомное значение температуры.
-
-Locations - название комнаты, sensorId - идентификатор названия комнаты
-
-```
-	// If no location is provided, use a default based on sensor ID
-	if location == "" {
-		switch sensorID {
-		case "1":
-			location = "Living Room"
-		case "2":
-			location = "Bedroom"
-		case "3":
-			location = "Kitchen"
-		default:
-			location = "Unknown"
-		}
-	}
-
-	// If no sensor ID is provided, generate one based on location
-	if sensorID == "" {
-		switch location {
-		case "Living Room":
-			sensorID = "1"
-		case "Bedroom":
-			sensorID = "2"
-		case "Kitchen":
-			sensorID = "3"
-		default:
-			sensorID = "0"
-		}
-	}
-```
-
-2) Приложение следует упаковать в Docker и добавить в docker-compose. Порт по умолчанию должен быть 8081
-
-3) Кроме того для smart_home приложения требуется база данных - добавьте в docker-compose файл настройки для запуска postgres с указанием скрипта инициализации ./smart_home/init.sql
-
-Для проверки можно использовать Postman коллекцию smarthome-api.postman_collection.json и вызвать:
-
-- Create Sensor
-- Get All Sensors
-
-Должно при каждом вызове отображаться разное значение температуры
-
-Ревьюер будет проверять точно так же.
+[docker-compose для проекта-монолита](apps/docker-compose.yml) я модифицировал: 
+- добавил туда контейнер с моим temperature-api, 
+- добавил скрипт для инициализации БД датчиков,
+- добавил использование сети `shared-network`, чтобы можно было обращаться к этим контейнерам из `docker-compose` от следующей задачи.
 
 
 # **Задание 6. Разработка MVP**
 
-Необходимо создать новые микросервисы и обеспечить их интеграции с существующим монолитом для плавного перехода к микросервисной архитектуре. 
+Сроки сжатые, материал велик, так что эту задачу я делал на минималках:
+- реализовал только микросервис для работы с датчиками (адаптер вокруг монолита);
+- реализовал только часть методов, необходимых для создания/удаления датчиков и просмотра информации о них.
 
-### **Что нужно сделать**
+Запись данных в kafka я фактически не реализовывал за нехваткой времени и сил,
+в надежде, что добрый ревьюер и так поставит зачёт -- и позволит, не размениваясь, перейти к следующей задаче. 
 
-1. Создайте новые микросервисы для управления телеметрией и устройствами (с простейшей логикой), которые будут интегрированы с существующим монолитным приложением. Каждый микросервис на своем ООП языке.
-2. Обеспечьте взаимодействие между микросервисами и монолитом (при желании с помощью брокера сообщений), чтобы постепенно перенести функциональность из монолита в микросервисы. 
+Чтобы это запустить, нужно сначала запустить монолит, а уже потом запустить новый микросервис:
+`cd apps && docker compose up -d`
+`cd apps/smart_home_microservices && docker compose up -d`
 
-В результате у вас должны быть созданы Dockerfiles и docker-compose для запуска микросервисов. 
+
+### Реализованные методы
+- Создание устройства: POST http://localhost:8000/device/create
+и передать в body:
+```
+{
+    "name": "Some Room Temperature",
+    "type": "temperature",
+    "location": "Dead Room",
+    "unit": "°C"
+}
+```
+
+- GET http://localhost:8000/all_devices
+- GET http://localhost:8000/device/{device_id}/info
+- DELETE http://localhost:8000/device/{device_id}/delete
+- GET http://localhost:8000/health_check
+
+![Вот, примерно так](https://www.meme-arsenal.com/memes/8e6516e769d5bb9aba06eaa4a26a277a.jpg)
